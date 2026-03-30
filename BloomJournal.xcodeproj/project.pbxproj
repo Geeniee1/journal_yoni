@@ -1,0 +1,644 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		000000000000000000000101 /* BloomJournalApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000201 /* BloomJournalApp.swift */; };
+		000000000000000000000102 /* AppContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000202 /* AppContainer.swift */; };
+		000000000000000000000103 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000203 /* RootView.swift */; };
+		000000000000000000000104 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000204 /* MainTabView.swift */; };
+		000000000000000000000105 /* LockedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000205 /* LockedView.swift */; };
+		000000000000000000000106 /* JournalModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000206 /* JournalModels.swift */; };
+		000000000000000000000107 /* AchievementDefinition.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000207 /* AchievementDefinition.swift */; };
+		000000000000000000000108 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000208 /* AppTheme.swift */; };
+		000000000000000000000109 /* AppComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000209 /* AppComponents.swift */; };
+		00000000000000000000010A /* AppLockController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000020A /* AppLockController.swift */; };
+		00000000000000000000010B /* BiometricAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000020B /* BiometricAuthService.swift */; };
+		00000000000000000000010C /* PhotoStorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000020C /* PhotoStorageService.swift */; };
+		00000000000000000000010D /* AchievementEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000020D /* AchievementEngine.swift */; };
+		00000000000000000000010E /* ExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000020E /* ExportService.swift */; };
+		00000000000000000000010F /* SeedDataService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000020F /* SeedDataService.swift */; };
+		000000000000000000000110 /* PreviewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000210 /* PreviewContainer.swift */; };
+		000000000000000000000111 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000211 /* HomeView.swift */; };
+		000000000000000000000112 /* EntryEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000212 /* EntryEditorView.swift */; };
+		000000000000000000000113 /* AchievementsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000213 /* AchievementsView.swift */; };
+		000000000000000000000114 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000214 /* ProfileView.swift */; };
+		000000000000000000000115 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000215 /* SettingsView.swift */; };
+		000000000000000000000117 /* BloomJournalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000217 /* BloomJournalTests.swift */; };
+		000000000000000000000118 /* BloomJournalUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000218 /* BloomJournalUITests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		000000000000000000000301 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 000000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 000000000000000000000010;
+			remoteInfo = BloomJournal;
+		};
+		000000000000000000000302 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 000000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 000000000000000000000010;
+			remoteInfo = BloomJournal;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		000000000000000000000201 /* BloomJournalApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BloomJournalApp.swift; sourceTree = "<group>"; };
+		000000000000000000000202 /* AppContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppContainer.swift; sourceTree = "<group>"; };
+		000000000000000000000203 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		000000000000000000000204 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		000000000000000000000205 /* LockedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockedView.swift; sourceTree = "<group>"; };
+		000000000000000000000206 /* JournalModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalModels.swift; sourceTree = "<group>"; };
+		000000000000000000000207 /* AchievementDefinition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AchievementDefinition.swift; sourceTree = "<group>"; };
+		000000000000000000000208 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
+		000000000000000000000209 /* AppComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppComponents.swift; sourceTree = "<group>"; };
+		00000000000000000000020A /* AppLockController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLockController.swift; sourceTree = "<group>"; };
+		00000000000000000000020B /* BiometricAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricAuthService.swift; sourceTree = "<group>"; };
+		00000000000000000000020C /* PhotoStorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoStorageService.swift; sourceTree = "<group>"; };
+		00000000000000000000020D /* AchievementEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AchievementEngine.swift; sourceTree = "<group>"; };
+		00000000000000000000020E /* ExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportService.swift; sourceTree = "<group>"; };
+		00000000000000000000020F /* SeedDataService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeedDataService.swift; sourceTree = "<group>"; };
+		000000000000000000000210 /* PreviewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewContainer.swift; sourceTree = "<group>"; };
+		000000000000000000000211 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		000000000000000000000212 /* EntryEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntryEditorView.swift; sourceTree = "<group>"; };
+		000000000000000000000213 /* AchievementsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AchievementsView.swift; sourceTree = "<group>"; };
+		000000000000000000000214 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		000000000000000000000215 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		000000000000000000000216 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		000000000000000000000217 /* BloomJournalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BloomJournalTests.swift; sourceTree = "<group>"; };
+		000000000000000000000218 /* BloomJournalUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BloomJournalUITests.swift; sourceTree = "<group>"; };
+		000000000000000000000401 /* BloomJournal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; path = BloomJournal.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		000000000000000000000402 /* BloomJournalTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = BloomJournalTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		000000000000000000000403 /* BloomJournalUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = BloomJournalUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		000000000000000000000501 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		000000000000000000000502 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		000000000000000000000503 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		000000000000000000000002 = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000020 /* BloomJournal */,
+				000000000000000000000021 /* BloomJournalTests */,
+				000000000000000000000022 /* BloomJournalUITests */,
+				000000000000000000000023 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		000000000000000000000020 /* BloomJournal */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000024 /* App */,
+				000000000000000000000025 /* Models */,
+				000000000000000000000026 /* Features */,
+				000000000000000000000027 /* Services */,
+				000000000000000000000028 /* DesignSystem */,
+				000000000000000000000029 /* Resources */,
+			);
+			path = BloomJournal;
+			sourceTree = "<group>";
+		};
+		000000000000000000000021 /* BloomJournalTests */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000217 /* BloomJournalTests.swift */,
+			);
+			path = BloomJournalTests;
+			sourceTree = "<group>";
+		};
+		000000000000000000000022 /* BloomJournalUITests */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000218 /* BloomJournalUITests.swift */,
+			);
+			path = BloomJournalUITests;
+			sourceTree = "<group>";
+		};
+		000000000000000000000023 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000401 /* BloomJournal.app */,
+				000000000000000000000402 /* BloomJournalTests.xctest */,
+				000000000000000000000403 /* BloomJournalUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		000000000000000000000024 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000201 /* BloomJournalApp.swift */,
+				000000000000000000000202 /* AppContainer.swift */,
+				000000000000000000000203 /* RootView.swift */,
+				000000000000000000000204 /* MainTabView.swift */,
+				000000000000000000000205 /* LockedView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		000000000000000000000025 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000206 /* JournalModels.swift */,
+				000000000000000000000207 /* AchievementDefinition.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		000000000000000000000026 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				00000000000000000000002A /* Home */,
+				00000000000000000000002B /* EntryEditor */,
+				00000000000000000000002C /* Achievements */,
+				00000000000000000000002D /* Profile */,
+				00000000000000000000002E /* Settings */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		000000000000000000000027 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				00000000000000000000020A /* AppLockController.swift */,
+				00000000000000000000020B /* BiometricAuthService.swift */,
+				00000000000000000000020C /* PhotoStorageService.swift */,
+				00000000000000000000020D /* AchievementEngine.swift */,
+				00000000000000000000020E /* ExportService.swift */,
+				00000000000000000000020F /* SeedDataService.swift */,
+				000000000000000000000210 /* PreviewContainer.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		000000000000000000000028 /* DesignSystem */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000208 /* AppTheme.swift */,
+				000000000000000000000209 /* AppComponents.swift */,
+			);
+			path = DesignSystem;
+			sourceTree = "<group>";
+		};
+		000000000000000000000029 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000216 /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		00000000000000000000002A /* Home */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000211 /* HomeView.swift */,
+			);
+			path = Home;
+			sourceTree = "<group>";
+		};
+		00000000000000000000002B /* EntryEditor */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000212 /* EntryEditorView.swift */,
+			);
+			path = EntryEditor;
+			sourceTree = "<group>";
+		};
+		00000000000000000000002C /* Achievements */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000213 /* AchievementsView.swift */,
+			);
+			path = Achievements;
+			sourceTree = "<group>";
+		};
+		00000000000000000000002D /* Profile */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000214 /* ProfileView.swift */,
+			);
+			path = Profile;
+			sourceTree = "<group>";
+		};
+		00000000000000000000002E /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000215 /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		000000000000000000000010 /* BloomJournal */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 000000000000000000000601 /* Build configuration list for PBXNativeTarget "BloomJournal" */;
+			buildPhases = (
+				000000000000000000000701 /* Sources */,
+				000000000000000000000501 /* Frameworks */,
+				000000000000000000000703 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = BloomJournal;
+			productName = BloomJournal;
+			productReference = 000000000000000000000401 /* BloomJournal.app */;
+			productType = "com.apple.product-type.application";
+		};
+		000000000000000000000011 /* BloomJournalTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 000000000000000000000602 /* Build configuration list for PBXNativeTarget "BloomJournalTests" */;
+			buildPhases = (
+				000000000000000000000704 /* Sources */,
+				000000000000000000000502 /* Frameworks */,
+				000000000000000000000706 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				000000000000000000000801 /* PBXTargetDependency */,
+			);
+			name = BloomJournalTests;
+			productName = BloomJournalTests;
+			productReference = 000000000000000000000402 /* BloomJournalTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		000000000000000000000012 /* BloomJournalUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 000000000000000000000603 /* Build configuration list for PBXNativeTarget "BloomJournalUITests" */;
+			buildPhases = (
+				000000000000000000000707 /* Sources */,
+				000000000000000000000503 /* Frameworks */,
+				000000000000000000000709 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				000000000000000000000802 /* PBXTargetDependency */,
+			);
+			name = BloomJournalUITests;
+			productName = BloomJournalUITests;
+			productReference = 000000000000000000000403 /* BloomJournalUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		000000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2600;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					000000000000000000000010 = {
+						CreatedOnToolsVersion = 26.4;
+					};
+					000000000000000000000011 = {
+						CreatedOnToolsVersion = 26.4;
+						TestTargetID = 000000000000000000000010;
+					};
+					000000000000000000000012 = {
+						CreatedOnToolsVersion = 26.4;
+						TestTargetID = 000000000000000000000010;
+					};
+				};
+			};
+			buildConfigurationList = 000000000000000000000600 /* Build configuration list for PBXProject "BloomJournal" */;
+			compatibilityVersion = "Xcode 16.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 000000000000000000000002;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 000000000000000000000023 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				000000000000000000000010 /* BloomJournal */,
+				000000000000000000000011 /* BloomJournalTests */,
+				000000000000000000000012 /* BloomJournalUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		000000000000000000000703 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		000000000000000000000706 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		000000000000000000000709 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		000000000000000000000701 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				000000000000000000000101 /* BloomJournalApp.swift in Sources */,
+				000000000000000000000102 /* AppContainer.swift in Sources */,
+				000000000000000000000103 /* RootView.swift in Sources */,
+				000000000000000000000104 /* MainTabView.swift in Sources */,
+				000000000000000000000105 /* LockedView.swift in Sources */,
+				000000000000000000000106 /* JournalModels.swift in Sources */,
+				000000000000000000000107 /* AchievementDefinition.swift in Sources */,
+				000000000000000000000108 /* AppTheme.swift in Sources */,
+				000000000000000000000109 /* AppComponents.swift in Sources */,
+				00000000000000000000010A /* AppLockController.swift in Sources */,
+				00000000000000000000010B /* BiometricAuthService.swift in Sources */,
+				00000000000000000000010C /* PhotoStorageService.swift in Sources */,
+				00000000000000000000010D /* AchievementEngine.swift in Sources */,
+				00000000000000000000010E /* ExportService.swift in Sources */,
+				00000000000000000000010F /* SeedDataService.swift in Sources */,
+				000000000000000000000110 /* PreviewContainer.swift in Sources */,
+				000000000000000000000111 /* HomeView.swift in Sources */,
+				000000000000000000000112 /* EntryEditorView.swift in Sources */,
+				000000000000000000000113 /* AchievementsView.swift in Sources */,
+				000000000000000000000114 /* ProfileView.swift in Sources */,
+				000000000000000000000115 /* SettingsView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		000000000000000000000704 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				000000000000000000000117 /* BloomJournalTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		000000000000000000000707 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				000000000000000000000118 /* BloomJournalUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		000000000000000000000801 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 000000000000000000000010 /* BloomJournal */;
+			targetProxy = 000000000000000000000301 /* PBXContainerItemProxy */;
+		};
+		000000000000000000000802 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 000000000000000000000010 /* BloomJournal */;
+			targetProxy = 000000000000000000000302 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		000000000000000000000900 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Bloom;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Bloom uses Face ID to protect your private journal.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Bloom lets you attach photos to journal entries stored locally on your device.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleDefault;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.BloomJournal;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		000000000000000000000901 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Bloom;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Bloom uses Face ID to protect your private journal.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Bloom lets you attach photos to journal entries stored locally on your device.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleDefault;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.BloomJournal;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		000000000000000000000902 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@loader_path/Frameworks",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.BloomJournalTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BloomJournal.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/BloomJournal";
+			};
+			name = Debug;
+		};
+		000000000000000000000903 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@loader_path/Frameworks",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.BloomJournalTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BloomJournal.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/BloomJournal";
+			};
+			name = Release;
+		};
+		000000000000000000000904 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@loader_path/Frameworks",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.BloomJournalUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = BloomJournal;
+			};
+			name = Debug;
+		};
+		000000000000000000000905 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@loader_path/Frameworks",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.BloomJournalUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = BloomJournal;
+			};
+			name = Release;
+		};
+		000000000000000000000906 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+			};
+			name = Debug;
+		};
+		000000000000000000000907 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		000000000000000000000600 /* Build configuration list for PBXProject "BloomJournal" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				000000000000000000000906 /* Debug */,
+				000000000000000000000907 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		000000000000000000000601 /* Build configuration list for PBXNativeTarget "BloomJournal" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				000000000000000000000900 /* Debug */,
+				000000000000000000000901 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		000000000000000000000602 /* Build configuration list for PBXNativeTarget "BloomJournalTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				000000000000000000000902 /* Debug */,
+				000000000000000000000903 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		000000000000000000000603 /* Build configuration list for PBXNativeTarget "BloomJournalUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				000000000000000000000904 /* Debug */,
+				000000000000000000000905 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 000000000000000000000001 /* Project object */;
+}
