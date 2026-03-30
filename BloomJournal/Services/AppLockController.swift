@@ -65,7 +65,7 @@ final class AppLockController: ObservableObject {
 
         do {
             let success = try await biometricService.authenticate(
-                reason: "Unlock Bloom to view your journal."
+                reason: "Unlock Yoni Journal to view your journal."
             )
             if success {
                 isLocked = false

@@ -3,16 +3,39 @@ import SwiftData
 
 struct ProfileView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.openURL) private var openURL
+    @EnvironmentObject private var lockController: AppLockController
+
     @Query(sort: \JournalEntry.entryDate, order: .reverse) private var entries: [JournalEntry]
     @Query private var profiles: [UserProfile]
+    @Query private var settings: [AppSettings]
+    @Query(sort: \AchievementUnlock.unlockedAt, order: .reverse) private var unlocks: [AchievementUnlock]
+
+    @State private var exportPayload: ExportPayload?
+    @State private var exportError: String?
+
+    private let exportService = ExportService()
+    private let achievementEngine = AchievementEngine()
 
     private var profile: UserProfile? {
         profiles.first
     }
 
+    private var appSettings: AppSettings {
+        settings.first ?? AppSettings()
+    }
+
+    private var levelValue: Int {
+        max(1, entries.count / 5 + 1)
+    }
+
     private var mostUsedTag: String {
         let frequencies = Dictionary(entries.flatMap(\.tags).map { ($0, 1) }, uniquingKeysWith: +)
         return frequencies.max(by: { $0.value < $1.value })?.key.capitalized ?? "None yet"
+    }
+
+    private var deepConnections: Int {
+        Set(entries.map(\.personNameOrAlias)).count
     }
 
     private var streakValue: Int {
@@ -27,71 +50,404 @@ struct ProfileView: View {
         return streak
     }
 
+    private var unlockedAchievements: [AchievementDefinition] {
+        let derived = achievementEngine.unlockedIDs(entries: entries)
+        let persisted = Set(unlocks.map(\.achievementID))
+        let combined = derived.union(persisted)
+        return AchievementCatalog.all.filter { combined.contains($0.id) }
+    }
+
     var body: some View {
         ScreenContainer(
-            title: profile?.displayName.isEmpty == false ? profile?.displayName ?? "Profile" : "Your Profile",
-            subtitle: profile?.intention.isEmpty == false ? profile?.intention ?? "" : "Shape the journal around what matters to you."
+            title: profile?.displayName.isEmpty == false ? profile?.displayName ?? "Your Profile" : "Your Profile",
+            subtitle: profile?.intention.isEmpty == false ? profile?.intention ?? "" : "Shape the journal around what matters to you.",
+            eyebrow: "Profile"
         ) {
+            profileHero
             profileEditor
-
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: AppTheme.Spacing.medium) {
-                StatCard(title: "Total Entries", value: "\(entries.count)", symbolName: "book.pages")
-                StatCard(title: "Most Used Tag", value: mostUsedTag, symbolName: "tag.fill")
-                StatCard(title: "Current Streak", value: "\(streakValue) days", symbolName: "flame.fill")
-                StatCard(title: "Connections", value: "\(Set(entries.map(\.personNameOrAlias)).count)", symbolName: "person.2.fill")
-            }
+            reflectionJourney
+            achievementsSection
+            settingsSection
+            supportSection
         }
         .navigationTitle("Profile")
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await SeedDataService.ensureSingletonsIfNeeded(modelContext: modelContext)
+            lockController.setAppLockEnabled(appSettings.isBiometricLockEnabled)
         }
+    }
+
+    private var profileHero: some View {
+        VStack(spacing: AppTheme.Spacing.medium) {
+            ZStack(alignment: .bottomTrailing) {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [AppTheme.Colors.accentSoft, Color.white.opacity(0.85)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 104, height: 104)
+                    .overlay {
+                        Image(systemName: "person.fill")
+                            .font(.system(size: 40))
+                            .foregroundStyle(AppTheme.Colors.plum)
+                    }
+
+                Circle()
+                    .fill(AppTheme.Colors.accent)
+                    .frame(width: 34, height: 34)
+                    .overlay {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(.white)
+                    }
+            }
+
+            VStack(spacing: 6) {
+                Text(profile?.displayName.isEmpty == false ? profile?.displayName ?? "" : "Yours, privately")
+                    .font(AppTheme.Typography.display)
+                    .foregroundStyle(AppTheme.Colors.primaryText)
+                    .multilineTextAlignment(.center)
+
+                Text("Reflection Level \(levelValue)")
+                    .font(.system(.caption, design: .rounded).weight(.bold))
+                    .foregroundStyle(AppTheme.Colors.accent)
+                    .tracking(1.2)
+
+                Text(profile?.bio.isEmpty == false ? profile?.bio ?? "" : "A private place for desire, tenderness, memory, and honesty.")
+                    .font(AppTheme.Typography.body)
+                    .foregroundStyle(AppTheme.Colors.secondaryText)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 320)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, AppTheme.Spacing.small)
+        .glassCard()
     }
 
     private var profileEditor: some View {
         VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
-            Text("About You")
-                .font(AppTheme.Typography.sectionTitle)
+            SectionHeader("Edit profile", subtitle: "Set the name and tone you want this journal to reflect.")
+
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+                Text("Name or alias")
+                    .font(.system(.caption, design: .rounded).weight(.bold))
+                    .foregroundStyle(AppTheme.Colors.accent)
+                    .tracking(1)
+
+                profileField(
+                    "Your name or alias",
+                    text: Binding(get: {
+                        profile?.displayName ?? ""
+                    }, set: { newValue in
+                        updateProfile { $0.displayName = newValue }
+                    })
+                )
+            }
+
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+                Text("Intention")
+                    .font(.system(.caption, design: .rounded).weight(.bold))
+                    .foregroundStyle(AppTheme.Colors.accent)
+                    .tracking(1)
+
+                profileField(
+                    "What are you looking for?",
+                    text: Binding(get: {
+                        profile?.intention ?? ""
+                    }, set: { newValue in
+                        updateProfile { $0.intention = newValue }
+                    })
+                )
+            }
+
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+                Text("Bio")
+                    .font(.system(.caption, design: .rounded).weight(.bold))
+                    .foregroundStyle(AppTheme.Colors.accent)
+                    .tracking(1)
+
+                TextField(
+                    "Short bio",
+                    text: Binding(get: {
+                        profile?.bio ?? ""
+                    }, set: { newValue in
+                        updateProfile { $0.bio = newValue }
+                    }),
+                    axis: .vertical
+                )
+                .lineLimit(4, reservesSpace: true)
+                .font(AppTheme.Typography.body)
                 .foregroundStyle(AppTheme.Colors.primaryText)
-
-            TextField(
-                "Your name or alias",
-                text: Binding(get: {
-                    profile?.displayName ?? ""
-                }, set: { newValue in
-                    updateProfile { $0.displayName = newValue }
-                })
-            )
-            .textFieldStyle(.roundedBorder)
-
-            TextField(
-                "What are you looking for?",
-                text: Binding(get: {
-                    profile?.intention ?? ""
-                }, set: { newValue in
-                    updateProfile { $0.intention = newValue }
-                })
-            )
-            .textFieldStyle(.roundedBorder)
-
-            TextField(
-                "Short bio",
-                text: Binding(get: {
-                    profile?.bio ?? ""
-                }, set: { newValue in
-                    updateProfile { $0.bio = newValue }
-                }),
-                axis: .vertical
-            )
-            .textFieldStyle(.roundedBorder)
-            .lineLimit(3, reservesSpace: true)
+                .padding(.horizontal, AppTheme.Spacing.medium)
+                .padding(.vertical, 14)
+                .background(profileFieldBackground)
+            }
+        }
+        .padding(AppTheme.Spacing.small)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.xLarge, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            AppTheme.Colors.accentSoft.opacity(0.62),
+                            Color.white.opacity(0.38)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.xLarge, style: .continuous)
+                .stroke(Color.white.opacity(0.42), lineWidth: 1)
         }
         .glassCard()
+    }
+
+    private var reflectionJourney: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
+            SectionHeader("Your reflection journey")
+
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+                Text("Consistency streak")
+                    .font(.system(.caption, design: .rounded).weight(.bold))
+                    .foregroundStyle(AppTheme.Colors.secondaryText)
+                    .tracking(1.2)
+
+                Text("\(streakValue)")
+                    .font(.system(size: 52, weight: .bold, design: .rounded))
+                    .foregroundStyle(AppTheme.Colors.primaryText)
+
+                Text(streakValue == 1 ? "day with an entry" : "days with consecutive entries")
+                    .font(AppTheme.Typography.body)
+                    .foregroundStyle(AppTheme.Colors.secondaryText)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(AppTheme.Spacing.large)
+            .background(
+                RoundedRectangle(cornerRadius: AppTheme.CornerRadius.xLarge, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [AppTheme.Colors.accentSoft.opacity(0.95), Color.white.opacity(0.35)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            )
+
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: AppTheme.Spacing.medium) {
+                StatCard(title: "Total Entries", value: "\(entries.count)", symbolName: "book.pages.fill")
+                StatCard(title: "Deep Connections", value: "\(deepConnections)", symbolName: "heart.fill")
+                StatCard(title: "Most Used Tag", value: mostUsedTag, symbolName: "tag.fill")
+                StatCard(title: "Current Level", value: "\(levelValue)", symbolName: "sparkles")
+            }
+        }
+    }
+
+    private var achievementsSection: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
+            SectionHeader("Unlocked milestones", subtitle: unlockedAchievements.isEmpty ? "Your first milestone will appear once you start logging entries." : "A few highlights from your archive so far.")
+
+            if unlockedAchievements.isEmpty {
+                EmptyStateCard(
+                    title: "No milestones yet",
+                    message: "Keep journaling and your wins will show up here.",
+                    systemImage: "trophy"
+                )
+            } else {
+                VStack(spacing: AppTheme.Spacing.medium) {
+                    ForEach(Array(unlockedAchievements.prefix(3))) { achievement in
+                        HStack(spacing: AppTheme.Spacing.medium) {
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .fill(AppTheme.Colors.accentSoft.opacity(0.92))
+                                .frame(width: 58, height: 58)
+                                .overlay {
+                                    Image(systemName: achievement.symbolName)
+                                        .foregroundStyle(AppTheme.Colors.plum)
+                                }
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(achievement.title)
+                                    .font(AppTheme.Typography.cardTitle)
+                                    .foregroundStyle(AppTheme.Colors.primaryText)
+
+                                Text(achievement.subtitle)
+                                    .font(AppTheme.Typography.body)
+                                    .foregroundStyle(AppTheme.Colors.secondaryText)
+                                    .lineLimit(2)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "star.fill")
+                                .foregroundStyle(AppTheme.Colors.gold)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .glassCard()
+                    }
+                }
+            }
+        }
+    }
+
+    private var settingsSection: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
+            SectionHeader("Settings", subtitle: "Privacy, appearance, and export now live here.")
+
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
+                Toggle(
+                    "App lock on open",
+                    isOn: Binding(
+                        get: { appSettings.isBiometricLockEnabled },
+                        set: { newValue in
+                            saveSettings {
+                                $0.isBiometricLockEnabled = newValue
+                            }
+                            lockController.setAppLockEnabled(newValue)
+                        }
+                    )
+                )
+
+                Text("Uses Face ID or Touch ID when available.")
+                    .font(AppTheme.Typography.caption)
+                    .foregroundStyle(AppTheme.Colors.secondaryText)
+            }
+            .glassCard()
+
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
+                Text("Appearance")
+                    .font(AppTheme.Typography.sectionTitle)
+
+                Picker(
+                    "Theme",
+                    selection: Binding(
+                        get: { appSettings.themePreference },
+                        set: { newValue in
+                            saveSettings {
+                                $0.themePreference = newValue
+                            }
+                        }
+                    )
+                ) {
+                    ForEach(ThemePreference.allCases) { preference in
+                        Text(preference.title).tag(preference)
+                    }
+                }
+                .pickerStyle(.segmented)
+            }
+            .glassCard()
+
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
+                Text("Export")
+                    .font(AppTheme.Typography.sectionTitle)
+
+                Button("Prepare JSON + CSV Export") {
+                    do {
+                        exportPayload = try exportService.makeExport(entries: entries)
+                        exportError = nil
+                    } catch {
+                        exportError = error.localizedDescription
+                    }
+                }
+                .buttonStyle(PrimaryButtonStyle())
+
+                if let exportPayload {
+                    ShareLink("Share JSON Export", item: exportPayload.jsonURL)
+                    ShareLink("Share CSV Export", item: exportPayload.csvURL)
+                }
+
+                if let exportError {
+                    Text(exportError)
+                        .font(AppTheme.Typography.caption)
+                        .foregroundStyle(AppTheme.Colors.warning)
+                }
+            }
+            .glassCard()
+        }
+    }
+
+    private var supportSection: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
+            SectionHeader("Support the project")
+
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
+                Text("Made with care by Geeniee")
+                    .font(.system(.title3, design: .serif).weight(.semibold))
+                    .foregroundStyle(AppTheme.Colors.primaryText)
+
+                Text("This app was created as a hobby project by Geeniee. The intention was for the app to be completely free, but if you enjoy it and would like to support the creator, please consider buying them a coffee! ☕️")
+                    .font(AppTheme.Typography.body)
+                    .foregroundStyle(AppTheme.Colors.secondaryText)
+
+                Button("☕ Buy Me a Coffee") {
+                    guard let url = URL(string: appSettings.buyMeACoffeeURL), !appSettings.buyMeACoffeeURL.isEmpty else { return }
+                    openURL(url)
+                }
+                .buttonStyle(PrimaryButtonStyle())
+
+                Text("Yoni Journal · Version 0.1.0")
+                    .font(AppTheme.Typography.caption)
+                    .foregroundStyle(AppTheme.Colors.secondaryText)
+            }
+            .padding(AppTheme.Spacing.medium)
+            .background(
+                RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                AppTheme.Colors.accentSoft.opacity(0.90),
+                                Color.white.opacity(0.55)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large, style: .continuous)
+                    .stroke(Color.white.opacity(0.45), lineWidth: 1)
+            }
+        }
+        .glassCard()
+    }
+
+    private func profileField(_ placeholder: String, text: Binding<String>) -> some View {
+        TextField(placeholder, text: text)
+            .font(AppTheme.Typography.body)
+            .foregroundStyle(AppTheme.Colors.primaryText)
+            .padding(.horizontal, AppTheme.Spacing.medium)
+            .padding(.vertical, 14)
+            .background(profileFieldBackground)
+    }
+
+    private var profileFieldBackground: some View {
+        RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium, style: .continuous)
+            .fill(Color.white.opacity(0.56))
+            .overlay {
+                RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium, style: .continuous)
+                    .stroke(Color.white.opacity(0.6), lineWidth: 1)
+            }
     }
 
     private func updateProfile(_ mutate: (UserProfile) -> Void) {
         let target = profile ?? {
             let created = UserProfile()
+            modelContext.insert(created)
+            return created
+        }()
+
+        mutate(target)
+        try? modelContext.save()
+    }
+
+    private func saveSettings(_ mutate: (AppSettings) -> Void) {
+        let target = settings.first ?? {
+            let created = AppSettings()
             modelContext.insert(created)
             return created
         }()
@@ -106,4 +462,5 @@ struct ProfileView: View {
         ProfileView()
     }
     .modelContainer(PreviewContainer.makeShared())
+    .environmentObject(AppLockController())
 }

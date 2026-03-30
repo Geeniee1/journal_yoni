@@ -26,7 +26,7 @@ struct LockedView: View {
                         .foregroundStyle(AppTheme.Colors.primaryText)
                         .multilineTextAlignment(.center)
 
-                    Text("Bloom keeps your journal local to this device and opens only after a quick privacy check when app lock is enabled.")
+                    Text("Yoni Journal keeps your entries local to this device and opens only after a quick privacy check when app lock is enabled.")
                         .font(AppTheme.Typography.body)
                         .foregroundStyle(AppTheme.Colors.secondaryText)
                         .multilineTextAlignment(.center)
@@ -49,7 +49,7 @@ struct LockedView: View {
                     await unlockAction()
                 }
             } label: {
-                Label(isBiometricEnabled ? "Unlock Bloom" : "Continue", systemImage: "arrow.right.circle.fill")
+                Label(isBiometricEnabled ? "Unlock Yoni Journal" : "Continue", systemImage: "arrow.right.circle.fill")
                     .font(AppTheme.Typography.button)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)

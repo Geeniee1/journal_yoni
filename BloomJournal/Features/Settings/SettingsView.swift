@@ -1,159 +1,278 @@
 import SwiftUI
 import SwiftData
 
-struct SettingsView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Environment(\.openURL) private var openURL
-    @EnvironmentObject private var lockController: AppLockController
-
+struct CalendarView: View {
     @Query(sort: \JournalEntry.entryDate, order: .reverse) private var entries: [JournalEntry]
-    @Query private var settings: [AppSettings]
+    @State private var displayedMonth = Calendar.current.startOfMonth(for: .now)
+    @State private var selectedDate: Date?
 
-    @State private var exportPayload: ExportPayload?
-    @State private var exportError: String?
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: AppTheme.Spacing.small), count: 7)
 
-    private let exportService = ExportService()
+    private var entriesByDay: [Date: [JournalEntry]] {
+        Dictionary(grouping: entries) { Calendar.current.startOfDay(for: $0.entryDate) }
+    }
 
-    private var appSettings: AppSettings {
-        settings.first ?? AppSettings()
+    private var monthDays: [CalendarDayValue] {
+        let calendar = Calendar.current
+        let monthInterval = calendar.dateInterval(of: .month, for: displayedMonth) ?? DateInterval(start: displayedMonth, duration: 0)
+        let firstWeekday = calendar.component(.weekday, from: monthInterval.start) - 1
+        let days = calendar.range(of: .day, in: .month, for: displayedMonth) ?? 1..<2
+
+        return Array(repeating: CalendarDayValue(date: nil), count: firstWeekday)
+            + days.map { day in
+                CalendarDayValue(date: calendar.date(bySetting: .day, value: day, of: displayedMonth))
+            }
+    }
+
+    private var selectedEntries: [JournalEntry] {
+        guard let selectedDate else { return [] }
+        return entriesByDay[Calendar.current.startOfDay(for: selectedDate)] ?? []
     }
 
     var body: some View {
         ScreenContainer(
-            title: "Settings",
-            subtitle: "Private by default, local-only, and yours to shape."
+            title: "Calendar",
+            subtitle: "Tap a day with a symbol to preview the entries you captured there.",
+            eyebrow: "Archive"
         ) {
-            privacyCard
-            appearanceCard
-            exportCard
-            aboutCard
+            monthHeader
+            legend
+            calendarGrid
+
+            if entries.isEmpty {
+                EmptyStateCard(
+                    title: "No entries on the calendar yet",
+                    message: "Add a journal entry and it will appear here as a heart or fire marker.",
+                    systemImage: "calendar.badge.plus"
+                )
+            }
         }
-        .navigationTitle("Settings")
+        .navigationTitle("Calendar")
         .navigationBarTitleDisplayMode(.inline)
-        .task {
-            await SeedDataService.ensureSingletonsIfNeeded(modelContext: modelContext)
-            lockController.setAppLockEnabled(appSettings.isBiometricLockEnabled)
-        }
-    }
-
-    private var privacyCard: some View {
-        VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
-            Text("Privacy")
-                .font(AppTheme.Typography.sectionTitle)
-
-            Toggle(
-                "App lock on open",
-                isOn: Binding(
-                    get: { appSettings.isBiometricLockEnabled },
-                    set: { newValue in
-                        saveSettings {
-                            $0.isBiometricLockEnabled = newValue
-                        }
-                        lockController.setAppLockEnabled(newValue)
-                    }
-                )
-            )
-
-            Text("Uses Face ID or Touch ID when available.")
-                .font(AppTheme.Typography.caption)
-                .foregroundStyle(AppTheme.Colors.secondaryText)
-        }
-        .glassCard()
-    }
-
-    private var appearanceCard: some View {
-        VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
-            Text("Appearance")
-                .font(AppTheme.Typography.sectionTitle)
-
-            Picker(
-                "Theme",
-                selection: Binding(
-                    get: { appSettings.themePreference },
-                    set: { value in
-                        saveSettings {
-                            $0.themePreference = value
-                        }
-                    }
-                )
-            ) {
-                ForEach(ThemePreference.allCases) { preference in
-                    Text(preference.title).tag(preference)
+        .sheet(isPresented: Binding(
+            get: { selectedDate != nil },
+            set: { isPresented in
+                if !isPresented {
+                    selectedDate = nil
                 }
             }
-            .pickerStyle(.segmented)
+        )) {
+            CalendarEntriesPreview(date: selectedDate, entries: selectedEntries)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
         }
-        .glassCard()
     }
 
-    private var exportCard: some View {
-        VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
-            Text("Export")
-                .font(AppTheme.Typography.sectionTitle)
-
-            Button("Prepare JSON + CSV Export") {
-                do {
-                    exportPayload = try exportService.makeExport(entries: entries)
-                    exportError = nil
-                } catch {
-                    exportError = error.localizedDescription
-                }
+    private var monthHeader: some View {
+        HStack {
+            Button {
+                displayedMonth = Calendar.current.date(byAdding: .month, value: -1, to: displayedMonth) ?? displayedMonth
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(AppTheme.Colors.primaryText)
+                    .frame(width: 42, height: 42)
+                    .background(Circle().fill(Color.white.opacity(0.5)))
             }
-            .buttonStyle(PrimaryButtonStyle())
+            .buttonStyle(.plain)
 
-            if let exportPayload {
-                ShareLink("Share JSON Export", item: exportPayload.jsonURL)
-                ShareLink("Share CSV Export", item: exportPayload.csvURL)
-            }
+            Spacer()
 
-            if let exportError {
-                Text(exportError)
+            VStack(spacing: 2) {
+                Text(displayedMonth.formatted(.dateTime.month(.wide)))
+                    .font(AppTheme.Typography.sectionTitle)
+                    .foregroundStyle(AppTheme.Colors.primaryText)
+                Text(displayedMonth.formatted(.dateTime.year()))
                     .font(AppTheme.Typography.caption)
-                    .foregroundStyle(AppTheme.Colors.warning)
+                    .foregroundStyle(AppTheme.Colors.secondaryText)
+            }
+
+            Spacer()
+
+            Button {
+                displayedMonth = Calendar.current.date(byAdding: .month, value: 1, to: displayedMonth) ?? displayedMonth
+            } label: {
+                Image(systemName: "chevron.right")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(AppTheme.Colors.primaryText)
+                    .frame(width: 42, height: 42)
+                    .background(Circle().fill(Color.white.opacity(0.5)))
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var legend: some View {
+        HStack(spacing: AppTheme.Spacing.medium) {
+            legendItem(icon: "heart.fill", title: "One entry")
+            legendItem(icon: "flame.fill", title: "Multiple entries")
+            Spacer()
+        }
+        .padding(.horizontal, 6)
+    }
+
+    private var calendarGrid: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
+            LazyVGrid(columns: columns, spacing: AppTheme.Spacing.small) {
+                ForEach(Calendar.current.shortWeekdaySymbols, id: \.self) { symbol in
+                    Text(symbol.uppercased())
+                        .font(.system(.caption2, design: .rounded).weight(.bold))
+                        .foregroundStyle(AppTheme.Colors.secondaryText)
+                }
+
+                ForEach(monthDays) { day in
+                    CalendarDayCell(
+                        day: day.date,
+                        entries: day.date.flatMap { entriesByDay[Calendar.current.startOfDay(for: $0)] } ?? [],
+                        isToday: day.date.map { Calendar.current.isDateInToday($0) } ?? false
+                    ) {
+                        if let date = day.date, entriesByDay[Calendar.current.startOfDay(for: date)] != nil {
+                            selectedDate = date
+                        }
+                    }
+                }
             }
         }
         .glassCard()
     }
 
-    private var aboutCard: some View {
-        VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
-            Text("About")
-                .font(AppTheme.Typography.sectionTitle)
-
-            Text("This app was created as a hobby project by Geeniee. The intention was for the app to be completely free, but if you enjoy it and would like to support the creator, please consider buying them a coffee! ☕️")
-                .font(AppTheme.Typography.body)
-                .foregroundStyle(AppTheme.Colors.secondaryText)
-
-            Button("☕ Buy Me a Coffee") {
-                guard let url = URL(string: appSettings.buyMeACoffeeURL), !appSettings.buyMeACoffeeURL.isEmpty else { return }
-                openURL(url)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(AppTheme.Colors.accent)
-
-            Text("Version 0.1.0")
+    private func legendItem(icon: String, title: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .foregroundStyle(icon == "flame.fill" ? AppTheme.Colors.accentBright : AppTheme.Colors.accent)
+            Text(title)
                 .font(AppTheme.Typography.caption)
                 .foregroundStyle(AppTheme.Colors.secondaryText)
         }
-        .glassCard()
+    }
+}
+
+private struct CalendarDayValue: Identifiable {
+    let id = UUID()
+    let date: Date?
+}
+
+private struct CalendarDayCell: View {
+    let day: Date?
+    let entries: [JournalEntry]
+    let isToday: Bool
+    let action: () -> Void
+
+    private var iconName: String? {
+        guard !entries.isEmpty else { return nil }
+        return entries.count > 1 ? "flame.fill" : "heart.fill"
     }
 
-    private func saveSettings(_ mutate: (AppSettings) -> Void) {
-        let target = settings.first ?? {
-            let created = AppSettings()
-            modelContext.insert(created)
-            return created
-        }()
+    private var iconColor: Color {
+        entries.count > 1 ? AppTheme.Colors.accentBright : AppTheme.Colors.accent
+    }
 
-        mutate(target)
-        try? modelContext.save()
+    var body: some View {
+        Group {
+            if let day {
+                Button(action: action) {
+                    VStack(spacing: 6) {
+                        Text(day.formatted(.dateTime.day()))
+                            .font(.system(.body, design: .rounded).weight(.semibold))
+                            .foregroundStyle(AppTheme.Colors.primaryText)
+
+                        if let iconName {
+                            Image(systemName: iconName)
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(iconColor)
+                        } else {
+                            Circle()
+                                .fill(Color.clear)
+                                .frame(width: 8, height: 8)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 56)
+                    .background(backgroundStyle)
+                }
+                .buttonStyle(.plain)
+                .disabled(entries.isEmpty)
+            } else {
+                Color.clear.frame(height: 56)
+            }
+        }
+    }
+
+    private var backgroundStyle: some View {
+        RoundedRectangle(cornerRadius: 18, style: .continuous)
+            .fill(
+                entries.isEmpty
+                    ? Color.white.opacity(isToday ? 0.55 : 0.22)
+                    : (entries.count > 1 ? AppTheme.Colors.accentSoft.opacity(0.95) : AppTheme.Colors.accentSoft.opacity(0.72))
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(isToday ? AppTheme.Colors.accent : Color.white.opacity(0.35), lineWidth: isToday ? 1.5 : 1)
+            }
+    }
+}
+
+private struct CalendarEntriesPreview: View {
+    let date: Date?
+    let entries: [JournalEntry]
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
+                    if let date {
+                        Text(date.formatted(date: .complete, time: .omitted))
+                            .font(AppTheme.Typography.display)
+                            .foregroundStyle(AppTheme.Colors.primaryText)
+                    }
+
+                    ForEach(entries) { entry in
+                        VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+                            HStack {
+                                Text(entry.personNameOrAlias)
+                                    .font(AppTheme.Typography.cardTitle)
+                                    .foregroundStyle(AppTheme.Colors.primaryText)
+                                Spacer()
+                                Text(entry.connectionType.title)
+                                    .font(AppTheme.Typography.caption)
+                                    .foregroundStyle(AppTheme.Colors.accent)
+                            }
+
+                            Text(entry.notes)
+                                .font(AppTheme.Typography.body)
+                                .foregroundStyle(AppTheme.Colors.secondaryText)
+                                .lineLimit(4)
+
+                            HStack(spacing: 10) {
+                                Text(entry.mood.emoji)
+                                if let rating = entry.rating {
+                                    Label("\(rating)/5", systemImage: "star.fill")
+                                        .font(AppTheme.Typography.caption)
+                                        .foregroundStyle(AppTheme.Colors.gold)
+                                }
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .glassCard()
+                    }
+                }
+                .padding(AppTheme.Spacing.large)
+            }
+            .background(AppBackground())
+            .navigationTitle("Entry Preview")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+}
+
+private extension Calendar {
+    func startOfMonth(for value: Date) -> Date {
+        self.date(from: dateComponents([.year, .month], from: value)) ?? value
     }
 }
 
 #Preview {
     NavigationStack {
-        SettingsView()
+        CalendarView()
     }
     .modelContainer(PreviewContainer.makeShared())
-    .environmentObject(AppLockController())
 }

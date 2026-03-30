@@ -5,58 +5,45 @@ enum AppTab: Hashable {
     case newEntry
     case achievements
     case profile
-    case settings
+    case calendar
 }
 
 struct MainTabView: View {
     @State private var selectedTab: AppTab = .home
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            HomeView()
-                .tabItem {
-                    Label("Home", systemImage: "house")
-                }
-                .tag(AppTab.home)
-
-            NavigationStack {
-                EntryEditorView()
-            }
-            .tabItem {
-                Label("New Entry", systemImage: "plus.circle.fill")
-            }
-            .tag(AppTab.newEntry)
-
-            NavigationStack {
-                AchievementsView()
-            }
-            .tabItem {
-                Label("Achievements", systemImage: "sparkles.rectangle.stack")
-            }
-            .tag(AppTab.achievements)
-
-            NavigationStack {
-                ProfileView()
-            }
-            .tabItem {
-                Label("Profile", systemImage: "person.crop.circle")
-            }
-            .tag(AppTab.profile)
-
-            NavigationStack {
-                SettingsView()
-            }
-            .tabItem {
-                Label("Settings", systemImage: "slider.horizontal.3")
-            }
-            .tag(AppTab.settings)
+        ZStack {
+            currentTabView
         }
-        .tint(AppTheme.Colors.accent)
-        .toolbar(.hidden, for: .tabBar)
         .safeAreaInset(edge: .bottom) {
             FloatingTabBar(selectedTab: $selectedTab)
                 .padding(.horizontal, 18)
                 .padding(.bottom, 8)
+        }
+        .animation(.smooth(duration: 0.25), value: selectedTab)
+    }
+
+    @ViewBuilder
+    private var currentTabView: some View {
+        switch selectedTab {
+        case .home:
+            HomeView()
+        case .newEntry:
+            NavigationStack {
+                EntryEditorView()
+            }
+        case .achievements:
+            NavigationStack {
+                AchievementsView()
+            }
+        case .profile:
+            NavigationStack {
+                ProfileView()
+            }
+        case .calendar:
+            NavigationStack {
+                CalendarView()
+            }
         }
     }
 }
@@ -109,7 +96,7 @@ private struct FloatingTabBar: View {
 
 extension AppTab: CaseIterable {
     static var allCases: [AppTab] {
-        [.home, .newEntry, .achievements, .profile, .settings]
+        [.home, .newEntry, .achievements, .profile, .calendar]
     }
 
     var shortTitle: String {
@@ -118,7 +105,7 @@ extension AppTab: CaseIterable {
         case .newEntry: "New"
         case .achievements: "Wins"
         case .profile: "Profile"
-        case .settings: "Settings"
+        case .calendar: "Calendar"
         }
     }
 
@@ -128,7 +115,7 @@ extension AppTab: CaseIterable {
         case .newEntry: "plus.circle.fill"
         case .achievements: "sparkles"
         case .profile: "person.crop.circle.fill"
-        case .settings: "slider.horizontal.3"
+        case .calendar: "calendar"
         }
     }
 }

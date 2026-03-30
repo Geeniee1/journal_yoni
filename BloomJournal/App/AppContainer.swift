@@ -18,7 +18,7 @@ struct AppContainerFactory {
         ])
 
         let modelConfiguration = ModelConfiguration(
-            "BloomJournal",
+            "YoniJournal",
             schema: schema,
             isStoredInMemoryOnly: inMemoryOnly
         )

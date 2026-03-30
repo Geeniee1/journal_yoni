@@ -451,10 +451,10 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = Bloom;
+				INFOPLIST_KEY_CFBundleDisplayName = "Yoni Journal";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
-				INFOPLIST_KEY_NSFaceIDUsageDescription = "Bloom uses Face ID to protect your private journal.";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Bloom lets you attach photos to journal entries stored locally on your device.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Yoni Journal uses Face ID to protect your private journal.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Yoni Journal lets you attach photos to journal entries stored locally on your device.";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleDefault;
@@ -465,7 +465,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.BloomJournal;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.YoniJournal;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -483,10 +483,10 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = Bloom;
+				INFOPLIST_KEY_CFBundleDisplayName = "Yoni Journal";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
-				INFOPLIST_KEY_NSFaceIDUsageDescription = "Bloom uses Face ID to protect your private journal.";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Bloom lets you attach photos to journal entries stored locally on your device.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Yoni Journal uses Face ID to protect your private journal.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Yoni Journal lets you attach photos to journal entries stored locally on your device.";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleDefault;
@@ -497,7 +497,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.BloomJournal;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.YoniJournal;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -520,7 +520,7 @@
 					"@loader_path/Frameworks",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.BloomJournalTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.YoniJournalTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.0;
@@ -541,7 +541,7 @@
 					"@loader_path/Frameworks",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.BloomJournalTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.YoniJournalTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.0;
@@ -561,7 +561,7 @@
 					"@loader_path/Frameworks",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.BloomJournalUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.YoniJournalUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.0;
@@ -581,7 +581,7 @@
 					"@loader_path/Frameworks",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.BloomJournalUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.YoniJournalUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.0;
