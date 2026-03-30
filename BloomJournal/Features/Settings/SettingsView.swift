@@ -120,6 +120,10 @@ struct SettingsView: View {
             Text("About")
                 .font(AppTheme.Typography.sectionTitle)
 
+            Text("This app was created as a hobby project by Geeniee. The intention was for the app to be completely free, but if you enjoy it and would like to support the creator, please consider buying them a coffee! ☕️")
+                .font(AppTheme.Typography.body)
+                .foregroundStyle(AppTheme.Colors.secondaryText)
+
             Button("☕ Buy Me a Coffee") {
                 guard let url = URL(string: appSettings.buyMeACoffeeURL), !appSettings.buyMeACoffeeURL.isEmpty else { return }
                 openURL(url)
