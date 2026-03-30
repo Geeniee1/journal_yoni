@@ -29,28 +29,37 @@ enum SampleEntries {
                 entryDate: Calendar.current.date(byAdding: .day, value: -2, to: .now) ?? .now,
                 personNameOrAlias: "Ari",
                 connectionType: .ongoing,
-                mood: .tender,
-                rating: 5,
+                rating: 8,
                 notes: "Soft morning after energy. We talked about boundaries and what ease feels like.",
-                tags: ["emotional", "fun"]
+                tags: ["emotional", "fun"],
+                wouldMeetAgain: true,
+                goodKisser: true,
+                madeMeCum: true,
+                greenFlags: ["communicative", "gentle"],
+                redFlags: ["late reply"]
             ),
             JournalEntry(
                 entryDate: Calendar.current.date(byAdding: .day, value: -9, to: .now) ?? .now,
                 personNameOrAlias: "N",
                 connectionType: .date,
-                mood: .dreamy,
-                rating: 4,
+                rating: 7,
                 notes: "Great chemistry, slow flirt, and a really grounding check-in afterward.",
-                tags: ["first time", "fun"]
+                tags: ["first time", "fun"],
+                wouldMeetAgain: true,
+                goodKisser: true,
+                greenFlags: ["present", "asks questions"]
             ),
             JournalEntry(
                 entryDate: Calendar.current.date(byAdding: .day, value: -17, to: .now) ?? .now,
                 personNameOrAlias: "June",
                 connectionType: .hookup,
-                mood: .playful,
-                rating: 4,
+                rating: 6,
                 notes: "Easy, funny, and uncomplicated. A nice reminder that light can still feel meaningful.",
-                tags: ["fun", "casual"]
+                tags: ["fun", "casual"],
+                goodHead: true,
+                longDuration: true,
+                greenFlags: ["funny"],
+                redFlags: ["inconsistent"]
             )
         ]
     }

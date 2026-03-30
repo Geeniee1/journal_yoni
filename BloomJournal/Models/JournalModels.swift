@@ -2,6 +2,26 @@ import Foundation
 import SwiftUI
 import SwiftData
 
+enum EntryBinaryPrompt: String, Codable, CaseIterable, Identifiable {
+    case wouldMeetAgain
+    case goodKisser
+    case goodHead
+    case longDuration
+    case madeMeCum
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .wouldMeetAgain: "Would meet again"
+        case .goodKisser: "Good kisser"
+        case .goodHead: "Good head"
+        case .longDuration: "Long"
+        case .madeMeCum: "Made me cum"
+        }
+    }
+}
+
 enum ConnectionType: String, Codable, CaseIterable, Identifiable {
     case hookup
     case date
@@ -44,43 +64,6 @@ enum ThemePreference: String, Codable, CaseIterable, Identifiable {
     }
 }
 
-enum MoodOption: String, Codable, CaseIterable, Identifiable {
-    case dreamy
-    case playful
-    case tender
-    case electric
-    case grounded
-    case complicated
-
-    var id: String { rawValue }
-
-    var emoji: String {
-        switch self {
-        case .dreamy: "✨"
-        case .playful: "😏"
-        case .tender: "💗"
-        case .electric: "🔥"
-        case .grounded: "🌿"
-        case .complicated: "🌀"
-        }
-    }
-
-    var title: String {
-        rawValue.capitalized
-    }
-
-    var iconName: String {
-        switch self {
-        case .dreamy: "sparkles"
-        case .playful: "smiley"
-        case .tender: "heart.fill"
-        case .electric: "bolt.fill"
-        case .grounded: "leaf.fill"
-        case .complicated: "swirl.circle.righthalf.filled"
-        }
-    }
-}
-
 @Model
 final class JournalEntry {
     @Attribute(.unique) var id: UUID
@@ -89,10 +72,16 @@ final class JournalEntry {
     var entryDate: Date
     var personNameOrAlias: String
     var connectionType: ConnectionType
-    var mood: MoodOption
-    var rating: Int?
+    var rating: Int
     var notes: String
     var tags: [String]
+    var wouldMeetAgain: Bool
+    var goodKisser: Bool
+    var goodHead: Bool
+    var longDuration: Bool
+    var madeMeCum: Bool
+    var greenFlags: [String]
+    var redFlags: [String]
 
     @Relationship(deleteRule: .cascade, inverse: \EntryPhoto.entry)
     var photoItems: [EntryPhoto]
@@ -104,10 +93,16 @@ final class JournalEntry {
         entryDate: Date = .now,
         personNameOrAlias: String,
         connectionType: ConnectionType,
-        mood: MoodOption,
-        rating: Int? = nil,
+        rating: Int = 5,
         notes: String,
         tags: [String] = [],
+        wouldMeetAgain: Bool = false,
+        goodKisser: Bool = false,
+        goodHead: Bool = false,
+        longDuration: Bool = false,
+        madeMeCum: Bool = false,
+        greenFlags: [String] = [],
+        redFlags: [String] = [],
         photoItems: [EntryPhoto] = []
     ) {
         self.id = id
@@ -116,10 +111,16 @@ final class JournalEntry {
         self.entryDate = entryDate
         self.personNameOrAlias = personNameOrAlias
         self.connectionType = connectionType
-        self.mood = mood
         self.rating = rating
         self.notes = notes
         self.tags = tags
+        self.wouldMeetAgain = wouldMeetAgain
+        self.goodKisser = goodKisser
+        self.goodHead = goodHead
+        self.longDuration = longDuration
+        self.madeMeCum = madeMeCum
+        self.greenFlags = greenFlags
+        self.redFlags = redFlags
         self.photoItems = photoItems
     }
 }

@@ -3,7 +3,7 @@ import SwiftData
 
 struct HomeView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \JournalEntry.entryDate, order: .reverse) private var entries: [JournalEntry]
+    @Query(sort: \JournalEntry.updatedAt, order: .reverse) private var entries: [JournalEntry]
     @State private var searchText = ""
 
     private var filteredEntries: [JournalEntry] {
@@ -15,6 +15,8 @@ struct HomeView: View {
                 || entry.notes.localizedCaseInsensitiveContains(query)
                 || entry.connectionType.title.localizedCaseInsensitiveContains(query)
                 || entry.tags.contains(where: { $0.localizedCaseInsensitiveContains(query) })
+                || entry.greenFlags.contains(where: { $0.localizedCaseInsensitiveContains(query) })
+                || entry.redFlags.contains(where: { $0.localizedCaseInsensitiveContains(query) })
         }
     }
 
@@ -36,7 +38,7 @@ struct HomeView: View {
                 } else if filteredEntries.isEmpty {
                     EmptyStateCard(
                         title: "No matching entries",
-                        message: "Try searching by name, tag, mood, or a word from your notes.",
+                        message: "Try searching by name, tag, flag, or a word from your notes.",
                         systemImage: "magnifyingglass"
                     )
                 } else {
@@ -113,13 +115,7 @@ private struct EntryCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
             HStack(alignment: .top, spacing: AppTheme.Spacing.medium) {
-                ZStack {
-                    Circle()
-                        .fill(AppTheme.Colors.accentSoft.opacity(0.95))
-                        .frame(width: 52, height: 52)
-                    Text(entry.mood.emoji)
-                        .font(.title2)
-                }
+                LotusRatingIcon(level: entry.rating, isSelected: true)
 
                 VStack(alignment: .leading, spacing: AppTheme.Spacing.xSmall) {
                     HStack {
@@ -134,7 +130,7 @@ private struct EntryCard: View {
                             .foregroundStyle(AppTheme.Colors.secondaryText)
                     }
 
-                    Text(entry.entryDate.formatted(date: .abbreviated, time: .omitted))
+                    Text("Updated \(entry.updatedAt.formatted(date: .abbreviated, time: .shortened))")
                         .font(AppTheme.Typography.caption)
                         .foregroundStyle(AppTheme.Colors.secondaryText)
 
@@ -153,11 +149,9 @@ private struct EntryCard: View {
                     .padding(.vertical, 8)
                     .background(Capsule().fill(AppTheme.Colors.accentSoft.opacity(0.9)))
 
-                if let rating = entry.rating {
-                    Label("\(rating)/5", systemImage: "star.fill")
-                        .font(AppTheme.Typography.caption)
-                        .foregroundStyle(AppTheme.Colors.gold)
-                }
+                Label("\(entry.rating)/10", systemImage: "sparkles")
+                    .font(AppTheme.Typography.caption)
+                    .foregroundStyle(AppTheme.Colors.gold)
 
                 Spacer()
 
@@ -174,19 +168,17 @@ private struct EntryCard: View {
 }
 
 private struct EntryDetailView: View {
+    @State private var isEditing = false
     let entry: JournalEntry
 
     var body: some View {
         ScreenContainer(title: entry.personNameOrAlias, subtitle: entry.entryDate.formatted(date: .complete, time: .shortened)) {
             VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
                 HStack {
-                    Label(entry.connectionType.title, systemImage: entry.mood.iconName)
+                    Label(entry.connectionType.title, systemImage: "heart.text.square.fill")
                         .foregroundStyle(AppTheme.Colors.accent)
-                    if let rating = entry.rating {
-                        Spacer()
-                        Label("\(rating)/5", systemImage: "star.fill")
-                            .foregroundStyle(AppTheme.Colors.accent)
-                    }
+                    Spacer()
+                    LotusRatingBadge(rating: entry.rating)
                 }
 
                 Text(entry.notes)
@@ -196,10 +188,67 @@ private struct EntryDetailView: View {
                 if !entry.tags.isEmpty {
                     FlowTagsView(tags: entry.tags)
                 }
+
+                EntryBinarySummary(entry: entry)
+
+                if !entry.greenFlags.isEmpty {
+                    VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+                        SectionHeader("Green Flags")
+                        FlowTagsView(tags: entry.greenFlags)
+                    }
+                }
+
+                if !entry.redFlags.isEmpty {
+                    VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+                        SectionHeader("Red Flags")
+                        FlowTagsView(tags: entry.redFlags)
+                    }
+                }
             }
             .glassCard()
         }
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Edit") {
+                    isEditing = true
+                }
+            }
+        }
+        .sheet(isPresented: $isEditing) {
+            NavigationStack {
+                EntryEditorView(entry: entry)
+            }
+            .presentationDetents([.large])
+        }
+    }
+}
+
+private struct EntryBinarySummary: View {
+    let entry: JournalEntry
+
+    private var enabledItems: [String] {
+        var items: [String] = []
+        if entry.wouldMeetAgain { items.append("Would meet again") }
+        if entry.goodKisser { items.append("Good kisser") }
+        if entry.goodHead { items.append("Good head") }
+        if entry.longDuration { items.append("Long") }
+        if entry.madeMeCum { items.append("Made me cum") }
+        return items
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+            SectionHeader("Quick Notes")
+
+            if enabledItems.isEmpty {
+                Text("No binary notes saved for this entry yet.")
+                    .font(AppTheme.Typography.caption)
+                    .foregroundStyle(AppTheme.Colors.secondaryText)
+            } else {
+                FlowTagsView(tags: enabledItems)
+            }
+        }
     }
 }
 

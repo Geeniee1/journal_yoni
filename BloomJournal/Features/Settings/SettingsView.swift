@@ -243,12 +243,7 @@ private struct CalendarEntriesPreview: View {
                                 .lineLimit(4)
 
                             HStack(spacing: 10) {
-                                Text(entry.mood.emoji)
-                                if let rating = entry.rating {
-                                    Label("\(rating)/5", systemImage: "star.fill")
-                                        .font(AppTheme.Typography.caption)
-                                        .foregroundStyle(AppTheme.Colors.gold)
-                                }
+                                LotusRatingBadge(rating: entry.rating)
                             }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)

@@ -29,16 +29,23 @@ struct ExportService {
     }
 
     private func makeCSV(from rows: [ExportEntry]) -> String {
-        let header = "id,date,name,type,mood,rating,tags,notes,photoCount"
+        let header = "id,date,updatedAt,name,type,rating,wouldMeetAgain,goodKisser,goodHead,longDuration,madeMeCum,tags,greenFlags,redFlags,notes,photoCount"
         let lines = rows.map { row in
             [
                 row.id.uuidString,
                 row.entryDate,
+                row.updatedAt,
                 csvEscape(row.personNameOrAlias),
                 row.connectionType,
-                row.mood,
-                row.rating.map(String.init) ?? "",
+                String(row.rating),
+                String(row.wouldMeetAgain),
+                String(row.goodKisser),
+                String(row.goodHead),
+                String(row.longDuration),
+                String(row.madeMeCum),
                 csvEscape(row.tags.joined(separator: "|")),
+                csvEscape(row.greenFlags.joined(separator: "|")),
+                csvEscape(row.redFlags.joined(separator: "|")),
                 csvEscape(row.notes),
                 String(row.photoCount)
             ]
@@ -55,22 +62,36 @@ struct ExportService {
 private struct ExportEntry: Codable {
     let id: UUID
     let entryDate: String
+    let updatedAt: String
     let personNameOrAlias: String
     let connectionType: String
-    let mood: String
-    let rating: Int?
+    let rating: Int
+    let wouldMeetAgain: Bool
+    let goodKisser: Bool
+    let goodHead: Bool
+    let longDuration: Bool
+    let madeMeCum: Bool
     let tags: [String]
+    let greenFlags: [String]
+    let redFlags: [String]
     let notes: String
     let photoCount: Int
 
     init(entry: JournalEntry) {
         id = entry.id
         entryDate = ISO8601DateFormatter().string(from: entry.entryDate)
+        updatedAt = ISO8601DateFormatter().string(from: entry.updatedAt)
         personNameOrAlias = entry.personNameOrAlias
         connectionType = entry.connectionType.rawValue
-        mood = entry.mood.rawValue
         rating = entry.rating
+        wouldMeetAgain = entry.wouldMeetAgain
+        goodKisser = entry.goodKisser
+        goodHead = entry.goodHead
+        longDuration = entry.longDuration
+        madeMeCum = entry.madeMeCum
         tags = entry.tags
+        greenFlags = entry.greenFlags
+        redFlags = entry.redFlags
         notes = entry.notes
         photoCount = entry.photoItems.count
     }
