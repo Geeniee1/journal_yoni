@@ -5,6 +5,7 @@ struct CalendarView: View {
     @Query(sort: \JournalEntry.entryDate, order: .reverse) private var entries: [JournalEntry]
     @State private var displayedMonth = Calendar.current.startOfMonth(for: .now)
     @State private var selectedDate: Date?
+    @State private var plannedEntrySeed: PlannedEntrySeed?
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: AppTheme.Spacing.small), count: 7)
 
@@ -32,7 +33,7 @@ struct CalendarView: View {
     var body: some View {
         ScreenContainer(
             title: "Calendar",
-            subtitle: "Tap a day with a symbol to preview the entries you captured there.",
+            subtitle: "Tap a marked day to preview it, or tap an empty future day to plan something ahead.",
             eyebrow: "Archive"
         ) {
             monthHeader
@@ -42,7 +43,7 @@ struct CalendarView: View {
             if entries.isEmpty {
                 EmptyStateCard(
                     title: "No entries on the calendar yet",
-                    message: "Add a journal entry and it will appear here as a heart or fire marker.",
+                    message: "Add a journal entry and it will appear here as a heart or fire marker. Empty future days can also start a planned entry.",
                     systemImage: "calendar.badge.plus"
                 )
             }
@@ -60,6 +61,17 @@ struct CalendarView: View {
             CalendarEntriesPreview(date: selectedDate, entries: selectedEntries)
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
+        }
+        .sheet(item: $plannedEntrySeed) { seed in
+            NavigationStack {
+                EntryEditorView(
+                    prefilledEntryDate: seed.date,
+                    prefilledConnectionType: .future,
+                    dismissAfterSave: true
+                )
+            }
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
         }
     }
 
@@ -106,6 +118,7 @@ struct CalendarView: View {
         HStack(spacing: AppTheme.Spacing.medium) {
             legendItem(icon: "heart.fill", title: "One entry")
             legendItem(icon: "flame.fill", title: "Multiple entries")
+            legendItem(icon: "plus.circle.fill", title: "Plan ahead")
             Spacer()
         }
         .padding(.horizontal, 6)
@@ -124,10 +137,14 @@ struct CalendarView: View {
                     CalendarDayCell(
                         day: day.date,
                         entries: day.date.flatMap { entriesByDay[Calendar.current.startOfDay(for: $0)] } ?? [],
-                        isToday: day.date.map { Calendar.current.isDateInToday($0) } ?? false
+                        isToday: day.date.map { Calendar.current.isDateInToday($0) } ?? false,
+                        isPlannable: day.date.map(isEmptyFutureDay) ?? false
                     ) {
-                        if let date = day.date, entriesByDay[Calendar.current.startOfDay(for: date)] != nil {
+                        guard let date = day.date else { return }
+                        if entriesByDay[Calendar.current.startOfDay(for: date)] != nil {
                             selectedDate = date
+                        } else if isEmptyFutureDay(date) {
+                            plannedEntrySeed = PlannedEntrySeed(date: date)
                         }
                     }
                 }
@@ -145,6 +162,13 @@ struct CalendarView: View {
                 .foregroundStyle(AppTheme.Colors.secondaryText)
         }
     }
+
+    private func isEmptyFutureDay(_ date: Date) -> Bool {
+        let calendar = Calendar.current
+        let day = calendar.startOfDay(for: date)
+        let today = calendar.startOfDay(for: .now)
+        return day > today && (entriesByDay[day]?.isEmpty ?? true)
+    }
 }
 
 private struct CalendarDayValue: Identifiable {
@@ -156,6 +180,7 @@ private struct CalendarDayCell: View {
     let day: Date?
     let entries: [JournalEntry]
     let isToday: Bool
+    let isPlannable: Bool
     let action: () -> Void
 
     private var iconName: String? {
@@ -180,6 +205,10 @@ private struct CalendarDayCell: View {
                             Image(systemName: iconName)
                                 .font(.caption.weight(.bold))
                                 .foregroundStyle(iconColor)
+                        } else if isPlannable {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(AppTheme.Colors.accent.opacity(0.88))
                         } else {
                             Circle()
                                 .fill(Color.clear)
@@ -190,7 +219,7 @@ private struct CalendarDayCell: View {
                     .background(backgroundStyle)
                 }
                 .buttonStyle(.plain)
-                .disabled(entries.isEmpty)
+                .disabled(entries.isEmpty && !isPlannable)
             } else {
                 Color.clear.frame(height: 56)
             }
@@ -201,14 +230,24 @@ private struct CalendarDayCell: View {
         RoundedRectangle(cornerRadius: 18, style: .continuous)
             .fill(
                 entries.isEmpty
-                    ? Color.white.opacity(isToday ? 0.55 : 0.22)
+                    ? Color.white.opacity(isToday ? 0.55 : (isPlannable ? 0.32 : 0.22))
                     : (entries.count > 1 ? AppTheme.Colors.accentSoft.opacity(0.95) : AppTheme.Colors.accentSoft.opacity(0.72))
             )
             .overlay {
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(isToday ? AppTheme.Colors.accent : Color.white.opacity(0.35), lineWidth: isToday ? 1.5 : 1)
+                    .stroke(
+                        isToday
+                            ? AppTheme.Colors.accent
+                            : (isPlannable ? AppTheme.Colors.accent.opacity(0.45) : Color.white.opacity(0.35)),
+                        style: StrokeStyle(lineWidth: isToday ? 1.5 : 1, dash: isPlannable ? [5, 4] : [])
+                    )
             }
     }
+}
+
+private struct PlannedEntrySeed: Identifiable {
+    let date: Date
+    var id: Date { date }
 }
 
 private struct CalendarEntriesPreview: View {

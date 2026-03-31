@@ -26,13 +26,14 @@ enum ConnectionType: String, Codable, CaseIterable, Identifiable {
     case hookup
     case date
     case sexyTime
+    case future
     case ongoing
     case other
 
     var id: String { rawValue }
 
     static var editorCases: [ConnectionType] {
-        [.hookup, .date, .sexyTime]
+        [.hookup, .date, .sexyTime, .future]
     }
 
     var title: String {
@@ -40,6 +41,7 @@ enum ConnectionType: String, Codable, CaseIterable, Identifiable {
         case .hookup: "Hookup"
         case .date: "Date"
         case .sexyTime: "Sexy Time"
+        case .future: "Future"
         case .ongoing: "Ongoing"
         case .other: "Other"
         }
@@ -461,6 +463,12 @@ final class JournalEntry {
         self.redFlags = redFlags
         self.positionIDs = positionIDs
         self.photoItems = photoItems
+    }
+}
+
+extension JournalEntry {
+    var isPlannedFutureEntry: Bool {
+        connectionType == .future || entryDate > .now
     }
 }
 

@@ -86,6 +86,17 @@ enum SampleEntries {
                 greenFlags: ["funny"],
                 redFlags: ["inconsistent"],
                 positionIDs: ["position-6", "position-7"]
+            ),
+            JournalEntry(
+                entryDate: Calendar.current.date(byAdding: .day, value: 4, to: .now) ?? .now,
+                personNameOrAlias: "Elias",
+                connectionType: .future,
+                rating: 8,
+                notes: "Planned for Friday night. Clear plan, eager energy, and good communication already.",
+                tags: ["planned", "chemistry"],
+                wouldMeetAgain: true,
+                greenFlags: ["planned ahead", "clear communicator"],
+                positionIDs: ["position-5"]
             )
         ]
     }

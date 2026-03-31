@@ -8,6 +8,8 @@ struct EntryEditorView: View {
 
     let entry: JournalEntry?
     let prefilledPersonName: String?
+    let prefilledEntryDate: Date?
+    let prefilledConnectionType: ConnectionType?
     let dismissAfterSave: Bool
 
     @State private var personNameOrAlias = ""
@@ -39,10 +41,21 @@ struct EntryEditorView: View {
     private let photoStorage = PhotoStorageService()
     private let presetTags = ["first time", "fun", "emotional", "complicated", "soft", "chemistry"]
 
-    init(entry: JournalEntry? = nil, prefilledPersonName: String? = nil, dismissAfterSave: Bool = false) {
+    init(
+        entry: JournalEntry? = nil,
+        prefilledPersonName: String? = nil,
+        prefilledEntryDate: Date? = nil,
+        prefilledConnectionType: ConnectionType? = nil,
+        dismissAfterSave: Bool = false
+    ) {
         self.entry = entry
         self.prefilledPersonName = prefilledPersonName
+        self.prefilledEntryDate = prefilledEntryDate
+        self.prefilledConnectionType = prefilledConnectionType
         self.dismissAfterSave = dismissAfterSave
+        self._personNameOrAlias = State(initialValue: entry?.personNameOrAlias ?? prefilledPersonName ?? "")
+        self._entryDate = State(initialValue: entry?.entryDate ?? prefilledEntryDate ?? .now)
+        self._connectionType = State(initialValue: entry?.connectionType ?? prefilledConnectionType ?? .hookup)
     }
 
     private var isEditing: Bool {
@@ -91,14 +104,60 @@ struct EntryEditorView: View {
             TextField("Name or alias", text: $personNameOrAlias)
                 .textFieldStyle(.roundedBorder)
 
-            DatePicker("Date", selection: $entryDate, displayedComponents: [.date, .hourAndMinute])
+            DatePicker(
+                connectionType == .future ? "Planned date" : "Date",
+                selection: $entryDate,
+                displayedComponents: [.date, .hourAndMinute]
+            )
 
-            Picker("Type", selection: $connectionType) {
-                ForEach(ConnectionType.editorCases) { type in
-                    Text(type.title).tag(type)
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+                Text("Type")
+                    .font(AppTheme.Typography.cardTitle)
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: AppTheme.Spacing.xSmall) {
+                        ForEach(ConnectionType.editorCases) { type in
+                            Button {
+                                connectionType = type
+                            } label: {
+                                Text(type.title)
+                                    .font(AppTheme.Typography.caption.weight(.semibold))
+                                    .foregroundStyle(
+                                        connectionType == type
+                                            ? Color.white
+                                            : AppTheme.Colors.primaryText
+                                    )
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 10)
+                                    .background(
+                                        Capsule(style: .continuous)
+                                            .fill(
+                                                connectionType == type
+                                                    ? AppTheme.Colors.accent
+                                                    : Color.white.opacity(0.42)
+                                            )
+                                    )
+                                    .overlay {
+                                        Capsule(style: .continuous)
+                                            .stroke(
+                                                connectionType == type
+                                                    ? AppTheme.Colors.accent.opacity(0.92)
+                                                    : Color.white.opacity(0.45),
+                                                lineWidth: 1
+                                            )
+                                    }
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
                 }
             }
-            .pickerStyle(.segmented)
+
+            if connectionType == .future {
+                Label("Planned entries stay softer in the archive until the moment actually happens.", systemImage: "clock.badge")
+                    .font(AppTheme.Typography.caption)
+                    .foregroundStyle(AppTheme.Colors.secondaryText)
+            }
 
             VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
                 Text("Tags")
@@ -290,6 +349,12 @@ struct EntryEditorView: View {
         guard let entry else {
             if personNameOrAlias.isEmpty, let prefilledPersonName {
                 personNameOrAlias = prefilledPersonName
+            }
+            if let prefilledEntryDate {
+                entryDate = prefilledEntryDate
+            }
+            if let prefilledConnectionType {
+                connectionType = prefilledConnectionType
             }
             return
         }

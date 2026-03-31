@@ -69,8 +69,8 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             ScreenContainer(
-                title: "Past Connections",
-                subtitle: "Search your archive and revisit the entries you want in seconds.",
+                title: "Connections",
+                subtitle: "Search what happened, keep upcoming plans in view, and revisit any thread in seconds.",
                 eyebrow: "Home"
             ) {
                 searchField
@@ -552,12 +552,17 @@ private struct EntryCard: View {
     let isSelected: Bool
     let isSelecting: Bool
 
+    private var isFutureThread: Bool {
+        thread.latestEntry.isPlannedFutureEntry
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
             HStack(alignment: .top, spacing: AppTheme.Spacing.medium) {
                 ZStack(alignment: .topLeading) {
                     LotusRatingIcon(level: thread.latestEntry.rating, isSelected: true, showsValueLabel: false)
                         .frame(width: 72)
+                        .opacity(isFutureThread ? 0.72 : 1)
 
                     if isSelecting {
                         Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
@@ -576,7 +581,11 @@ private struct EntryCard: View {
                     HStack {
                         Text(thread.personName)
                             .font(.system(.title3, design: .rounded).weight(.semibold))
-                            .foregroundStyle(AppTheme.Colors.primaryText)
+                            .foregroundStyle(
+                                isFutureThread
+                                    ? AppTheme.Colors.primaryText.opacity(0.7)
+                                    : AppTheme.Colors.primaryText
+                            )
 
                         Spacer()
 
@@ -587,11 +596,11 @@ private struct EntryCard: View {
 
                     Text("Updated \(thread.latestEntry.updatedAt.formatted(date: .abbreviated, time: .shortened))")
                         .font(AppTheme.Typography.caption)
-                        .foregroundStyle(AppTheme.Colors.secondaryText)
+                        .foregroundStyle(AppTheme.Colors.secondaryText.opacity(isFutureThread ? 0.78 : 1))
 
                     Text(thread.latestEntry.notes)
                         .font(AppTheme.Typography.body)
-                        .foregroundStyle(AppTheme.Colors.secondaryText)
+                        .foregroundStyle(AppTheme.Colors.secondaryText.opacity(isFutureThread ? 0.82 : 1))
                         .lineLimit(3)
                 }
             }
@@ -599,26 +608,34 @@ private struct EntryCard: View {
             HStack(spacing: 10) {
                 Text(thread.latestEntry.connectionType.title.uppercased())
                     .font(.system(.caption2, design: .rounded).weight(.bold))
-                    .foregroundStyle(AppTheme.Colors.accent)
+                    .foregroundStyle(isFutureThread ? AppTheme.Colors.secondaryText : AppTheme.Colors.accent)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
-                    .background(Capsule().fill(AppTheme.Colors.accentSoft.opacity(0.9)))
+                    .background(
+                        Capsule().fill(
+                            isFutureThread
+                                ? Color.white.opacity(0.32)
+                                : AppTheme.Colors.accentSoft.opacity(0.9)
+                        )
+                    )
 
                 Text("\(thread.entries.count) entr\(thread.entries.count == 1 ? "y" : "ies")")
                     .font(AppTheme.Typography.caption)
-                    .foregroundStyle(AppTheme.Colors.secondaryText)
+                    .foregroundStyle(AppTheme.Colors.secondaryText.opacity(isFutureThread ? 0.82 : 1))
 
                 Spacer()
 
                 if !thread.latestEntry.tags.isEmpty {
                     Text(thread.latestEntry.tags.prefix(2).joined(separator: " · "))
                         .font(AppTheme.Typography.caption)
-                        .foregroundStyle(AppTheme.Colors.secondaryText)
+                        .foregroundStyle(AppTheme.Colors.secondaryText.opacity(isFutureThread ? 0.82 : 1))
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassCard()
+        .saturation(isFutureThread ? 0.45 : 1)
+        .opacity(isFutureThread ? 0.86 : 1)
     }
 }
 
@@ -650,6 +667,10 @@ private struct PersonThread: Identifiable {
 
     var entryCount: Int {
         entries.count
+    }
+
+    var isPlannedFutureThread: Bool {
+        latestEntry.isPlannedFutureEntry
     }
 }
 
@@ -974,12 +995,17 @@ private struct EntryHistoryCard: View {
     let isSelected: Bool
     let isSelecting: Bool
 
+    private var isFutureEntry: Bool {
+        entry.isPlannedFutureEntry
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
             HStack(alignment: .top, spacing: AppTheme.Spacing.small) {
                 ZStack(alignment: .topLeading) {
                     LotusRatingIcon(level: entry.rating, isSelected: true, showsValueLabel: false)
                         .frame(width: 72)
+                        .opacity(isFutureEntry ? 0.72 : 1)
 
                     if isSelecting {
                         Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
@@ -997,11 +1023,15 @@ private struct EntryHistoryCard: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(entry.entryDate.formatted(date: .abbreviated, time: .shortened))
                         .font(.system(.headline, design: .rounded).weight(.semibold))
-                        .foregroundStyle(AppTheme.Colors.primaryText)
+                        .foregroundStyle(
+                            isFutureEntry
+                                ? AppTheme.Colors.primaryText.opacity(0.72)
+                                : AppTheme.Colors.primaryText
+                        )
 
                     Text(entry.notes)
                         .font(AppTheme.Typography.body)
-                        .foregroundStyle(AppTheme.Colors.secondaryText)
+                        .foregroundStyle(AppTheme.Colors.secondaryText.opacity(isFutureEntry ? 0.82 : 1))
                         .lineLimit(2)
                 }
 
@@ -1015,17 +1045,19 @@ private struct EntryHistoryCard: View {
             HStack(spacing: 10) {
                 Text(entry.connectionType.title.uppercased())
                     .font(.system(.caption2, design: .rounded).weight(.bold))
-                    .foregroundStyle(AppTheme.Colors.accent)
+                    .foregroundStyle(isFutureEntry ? AppTheme.Colors.secondaryText : AppTheme.Colors.accent)
 
                 if !entry.positionIDs.isEmpty {
                     Text("\(entry.positionIDs.count) positions")
                         .font(AppTheme.Typography.caption)
-                        .foregroundStyle(AppTheme.Colors.secondaryText)
+                        .foregroundStyle(AppTheme.Colors.secondaryText.opacity(isFutureEntry ? 0.82 : 1))
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassCard()
+        .saturation(isFutureEntry ? 0.45 : 1)
+        .opacity(isFutureEntry ? 0.86 : 1)
     }
 }
 
