@@ -31,6 +31,8 @@
 		000000000000000000000116 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000216 /* Assets.xcassets */; };
 		000000000000000000000117 /* BloomJournalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000217 /* BloomJournalTests.swift */; };
 		000000000000000000000118 /* BloomJournalUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000218 /* BloomJournalUITests.swift */; };
+		000000000000000000000119 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000219 /* WelcomeView.swift */; };
+		00000000000000000000011A /* AudioMemoStorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000021A /* AudioMemoStorageService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -75,6 +77,8 @@
 		000000000000000000000216 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		000000000000000000000217 /* BloomJournalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BloomJournalTests.swift; sourceTree = "<group>"; };
 		000000000000000000000218 /* BloomJournalUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BloomJournalUITests.swift; sourceTree = "<group>"; };
+		000000000000000000000219 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
+		00000000000000000000021A /* AudioMemoStorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioMemoStorageService.swift; sourceTree = "<group>"; };
 		000000000000000000000401 /* BloomJournal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; path = BloomJournal.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		000000000000000000000402 /* BloomJournalTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = BloomJournalTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		000000000000000000000403 /* BloomJournalUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = BloomJournalUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -162,6 +166,7 @@
 				000000000000000000000203 /* RootView.swift */,
 				000000000000000000000204 /* MainTabView.swift */,
 				000000000000000000000205 /* LockedView.swift */,
+				000000000000000000000219 /* WelcomeView.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -193,6 +198,7 @@
 				00000000000000000000020A /* AppLockController.swift */,
 				00000000000000000000020B /* BiometricAuthService.swift */,
 				00000000000000000000020C /* PhotoStorageService.swift */,
+				00000000000000000000021A /* AudioMemoStorageService.swift */,
 				00000000000000000000020D /* AchievementEngine.swift */,
 				00000000000000000000020E /* ExportService.swift */,
 				00000000000000000000020F /* SeedDataService.swift */,
@@ -393,6 +399,7 @@
 				000000000000000000000103 /* RootView.swift in Sources */,
 				000000000000000000000104 /* MainTabView.swift in Sources */,
 				000000000000000000000105 /* LockedView.swift in Sources */,
+				000000000000000000000119 /* WelcomeView.swift in Sources */,
 				000000000000000000000106 /* JournalModels.swift in Sources */,
 				000000000000000000000107 /* AchievementDefinition.swift in Sources */,
 				000000000000000000000108 /* AppTheme.swift in Sources */,
@@ -400,6 +407,7 @@
 				00000000000000000000010A /* AppLockController.swift in Sources */,
 				00000000000000000000010B /* BiometricAuthService.swift in Sources */,
 				00000000000000000000010C /* PhotoStorageService.swift in Sources */,
+				00000000000000000000011A /* AudioMemoStorageService.swift in Sources */,
 				00000000000000000000010D /* AchievementEngine.swift in Sources */,
 				00000000000000000000010E /* ExportService.swift in Sources */,
 				00000000000000000000010F /* SeedDataService.swift in Sources */,
@@ -460,6 +468,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "Yoni Journal";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Yoni Journal uses Face ID to protect your private journal.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Yoni Journal uses the microphone so you can record private voice memos stored only on your device.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Yoni Journal lets you attach photos to journal entries stored locally on your device.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -495,6 +504,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "Yoni Journal";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Yoni Journal uses Face ID to protect your private journal.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Yoni Journal uses the microphone so you can record private voice memos stored only on your device.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Yoni Journal lets you attach photos to journal entries stored locally on your device.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

@@ -1,3 +1,4 @@
+import AVFoundation
 import PhotosUI
 import SwiftUI
 import SwiftData
@@ -48,8 +49,13 @@ struct EntryEditorView: View {
     @State private var hasLoadedEntry = false
     @State private var isShowingSaveCelebration = false
     @State private var isSaveButtonCelebrating = false
+    @State private var existingVoiceMemoFileName: String?
+    @State private var existingVoiceMemoDuration: Double?
+    @State private var voiceMemoMarkedForDeletion = false
+    @StateObject private var voiceMemoController = VoiceMemoRecorder()
 
     private let photoStorage = PhotoStorageService()
+    private let audioMemoStorage = AudioMemoStorageService()
 
     init(
         entry: JournalEntry? = nil,
@@ -106,6 +112,9 @@ struct EntryEditorView: View {
                     pendingPhotoData.append(data)
                 }
             }
+        }
+        .onDisappear {
+            voiceMemoController.discardTemporaryRecording()
         }
     }
 
@@ -238,6 +247,8 @@ struct EntryEditorView: View {
             Text("Notes")
                 .font(AppTheme.Typography.cardTitle)
 
+            voiceMemoSection
+
             TextEditor(text: $notes)
                 .frame(minHeight: 180)
                 .scrollContentBackground(.hidden)
@@ -284,6 +295,78 @@ struct EntryEditorView: View {
             }
         }
         .glassCard()
+    }
+
+    private var voiceMemoSection: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+            HStack {
+                Text("Voice memo")
+                    .font(AppTheme.Typography.cardTitle)
+                Spacer()
+                if let duration = voiceMemoController.currentDuration {
+                    Text(formattedDuration(duration))
+                        .font(AppTheme.Typography.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.Colors.secondaryText)
+                }
+            }
+
+            Text("Record privately with your microphone instead of typing everything by hand. The memo stays on this device.")
+                .font(AppTheme.Typography.caption)
+                .foregroundStyle(AppTheme.Colors.secondaryText)
+
+            HStack(spacing: AppTheme.Spacing.small) {
+                Button {
+                    if voiceMemoController.isRecording {
+                        voiceMemoController.stopRecording()
+                    } else {
+                        voiceMemoController.startRecording(storage: audioMemoStorage)
+                    }
+                } label: {
+                    Label(
+                        voiceMemoController.isRecording ? "Stop Recording" : (voiceMemoController.hasMemo ? "Record Again" : "Record Voice Memo"),
+                        systemImage: voiceMemoController.isRecording ? "stop.circle.fill" : "mic.circle.fill"
+                    )
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                }
+                .buttonStyle(PrimaryButtonStyle())
+
+                Button {
+                    voiceMemoController.togglePlayback()
+                } label: {
+                    Label(voiceMemoController.isPlaying ? "Pause" : "Play", systemImage: voiceMemoController.isPlaying ? "pause.circle.fill" : "play.circle.fill")
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                }
+                .buttonStyle(.bordered)
+                .tint(AppTheme.Colors.accent)
+                .disabled(!voiceMemoController.hasMemo || voiceMemoController.isRecording)
+            }
+
+            if voiceMemoController.hasMemo {
+                HStack {
+                    Text(voiceMemoController.isRecording ? "Recording now…" : "Voice memo attached")
+                        .font(AppTheme.Typography.caption)
+                        .foregroundStyle(AppTheme.Colors.secondaryText)
+
+                    Spacer()
+
+                    Button(role: .destructive) {
+                        voiceMemoMarkedForDeletion = existingVoiceMemoFileName != nil
+                        voiceMemoController.clearMemo()
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                    .font(AppTheme.Typography.caption.weight(.semibold))
+                }
+            }
+
+            if let errorMessage = voiceMemoController.errorMessage {
+                Text(errorMessage)
+                    .font(AppTheme.Typography.caption)
+                    .foregroundStyle(AppTheme.Colors.warning)
+            }
+        }
     }
 
     private var positionsCard: some View {
@@ -381,6 +464,17 @@ struct EntryEditorView: View {
         greenFlags = entry.greenFlags
         redFlags = entry.redFlags
         selectedPositionIDs = Set(entry.positionIDs)
+        existingVoiceMemoFileName = entry.voiceMemoFileName
+        existingVoiceMemoDuration = entry.voiceMemoDuration
+        voiceMemoMarkedForDeletion = false
+        if let fileName = entry.voiceMemoFileName {
+            voiceMemoController.loadExistingMemo(
+                url: audioMemoStorage.audioURL(for: fileName),
+                duration: entry.voiceMemoDuration
+            )
+        } else {
+            voiceMemoController.clearMemo()
+        }
     }
 
     private func addTag(_ value: String, to items: inout [String]) {
@@ -467,6 +561,36 @@ struct EntryEditorView: View {
         targetEntry.redFlags = redFlags
         targetEntry.positionIDs = Array(selectedPositionIDs).sorted()
 
+        if voiceMemoController.hasTemporaryRecording,
+           let temporaryURL = voiceMemoController.temporaryRecordingURL {
+            if let existingVoiceMemoFileName {
+                audioMemoStorage.delete(fileName: existingVoiceMemoFileName)
+            }
+            if let persistedFileName = try? audioMemoStorage.persistRecording(from: temporaryURL) {
+                targetEntry.voiceMemoFileName = persistedFileName
+                targetEntry.voiceMemoDuration = voiceMemoController.currentDuration
+                existingVoiceMemoFileName = persistedFileName
+                existingVoiceMemoDuration = voiceMemoController.currentDuration
+                voiceMemoMarkedForDeletion = false
+                voiceMemoController.promoteTemporaryMemo(
+                    to: audioMemoStorage.audioURL(for: persistedFileName),
+                    duration: voiceMemoController.currentDuration
+                )
+            }
+        } else if voiceMemoMarkedForDeletion {
+            if let existingVoiceMemoFileName {
+                audioMemoStorage.delete(fileName: existingVoiceMemoFileName)
+            }
+            targetEntry.voiceMemoFileName = nil
+            targetEntry.voiceMemoDuration = nil
+            existingVoiceMemoFileName = nil
+            existingVoiceMemoDuration = nil
+            voiceMemoMarkedForDeletion = false
+        } else {
+            targetEntry.voiceMemoFileName = existingVoiceMemoFileName
+            targetEntry.voiceMemoDuration = existingVoiceMemoDuration
+        }
+
         for data in pendingPhotoData {
             if let photo = try? photoStorage.saveImageData(data) {
                 photo.entry = targetEntry
@@ -527,6 +651,10 @@ struct EntryEditorView: View {
         selectedPositionIDs = []
         selectedPhotoItem = nil
         pendingPhotoData = []
+        existingVoiceMemoFileName = nil
+        existingVoiceMemoDuration = nil
+        voiceMemoMarkedForDeletion = false
+        voiceMemoController.clearMemo()
     }
 
     private func celebrateSuccessfulSave() {
@@ -544,6 +672,13 @@ struct EntryEditorView: View {
                 }
             }
         }
+    }
+
+    private func formattedDuration(_ duration: TimeInterval) -> String {
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = duration >= 3600 ? [.hour, .minute, .second] : [.minute, .second]
+        formatter.zeroFormattingBehavior = [.pad]
+        return formatter.string(from: duration) ?? "0:00"
     }
 }
 
@@ -843,6 +978,176 @@ private struct SaveConfirmationBanner: View {
                 .stroke(Color.white.opacity(0.45), lineWidth: 1)
         }
         .shadow(color: AppTheme.Colors.accent.opacity(0.28), radius: 24, x: 0, y: 14)
+    }
+}
+
+@MainActor
+final class VoiceMemoRecorder: NSObject, ObservableObject, AVAudioPlayerDelegate {
+    @Published var isRecording = false
+    @Published var isPlaying = false
+    @Published var currentDuration: TimeInterval?
+    @Published var errorMessage: String?
+
+    private(set) var temporaryRecordingURL: URL?
+
+    var hasMemo: Bool {
+        currentURL != nil
+    }
+
+    var hasTemporaryRecording: Bool {
+        temporaryRecordingURL != nil
+    }
+
+    private var currentURL: URL?
+    private var recorder: AVAudioRecorder?
+    private var player: AVAudioPlayer?
+    private var timer: Timer?
+
+    func loadExistingMemo(url: URL, duration: TimeInterval?) {
+        stopPlayback()
+        stopRecording()
+        currentURL = url
+        currentDuration = duration
+        errorMessage = nil
+    }
+
+    func startRecording(storage: AudioMemoStorageService) {
+        stopPlayback()
+        errorMessage = nil
+
+        AVAudioSession.sharedInstance().requestRecordPermission { [weak self] granted in
+            Task { @MainActor in
+                guard let self else { return }
+                guard granted else {
+                    self.errorMessage = "Microphone access is required to record a local voice memo."
+                    return
+                }
+                self.beginRecording(storage: storage)
+            }
+        }
+    }
+
+    func stopRecording() {
+        guard let recorder else { return }
+        recorder.stop()
+        currentDuration = recorder.currentTime
+        self.recorder = nil
+        isRecording = false
+        stopTimer()
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+    }
+
+    func togglePlayback() {
+        isPlaying ? stopPlayback() : startPlayback()
+    }
+
+    func clearMemo() {
+        stopPlayback()
+        stopRecording()
+        discardTemporaryRecording()
+        currentURL = nil
+        currentDuration = nil
+        errorMessage = nil
+    }
+
+    func discardTemporaryRecording() {
+        if isRecording {
+            stopRecording()
+        }
+
+        guard let temporaryRecordingURL else { return }
+        try? FileManager.default.removeItem(at: temporaryRecordingURL)
+        if currentURL == temporaryRecordingURL {
+            currentURL = nil
+            currentDuration = nil
+        }
+        self.temporaryRecordingURL = nil
+    }
+
+    func promoteTemporaryMemo(to url: URL, duration: TimeInterval?) {
+        if let temporaryRecordingURL {
+            try? FileManager.default.removeItem(at: temporaryRecordingURL)
+        }
+        temporaryRecordingURL = nil
+        currentURL = url
+        currentDuration = duration
+        errorMessage = nil
+    }
+
+    private func beginRecording(storage: AudioMemoStorageService) {
+        discardTemporaryRecording()
+
+        let session = AVAudioSession.sharedInstance()
+        do {
+            try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker])
+            try session.setActive(true)
+
+            let url = storage.temporaryRecordingURL()
+            let recorder = try AVAudioRecorder(
+                url: url,
+                settings: [
+                    AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
+                    AVSampleRateKey: 12_000,
+                    AVNumberOfChannelsKey: 1,
+                    AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
+                ]
+            )
+
+            recorder.record()
+            self.recorder = recorder
+            temporaryRecordingURL = url
+            currentURL = url
+            currentDuration = 0
+            isRecording = true
+            startTimer()
+        } catch {
+            errorMessage = "Could not start recording. Please try again."
+        }
+    }
+
+    private func startPlayback() {
+        guard let currentURL else { return }
+
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playback, mode: .default)
+            try session.setActive(true)
+
+            let player = try AVAudioPlayer(contentsOf: currentURL)
+            player.delegate = self
+            player.play()
+            self.player = player
+            isPlaying = true
+        } catch {
+            errorMessage = "Could not play this voice memo."
+        }
+    }
+
+    private func stopPlayback() {
+        player?.stop()
+        player = nil
+        isPlaying = false
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+    }
+
+    private func startTimer() {
+        stopTimer()
+        timer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { [weak self] _ in
+            guard let self, let recorder = self.recorder else { return }
+            Task { @MainActor in
+                self.currentDuration = recorder.currentTime
+            }
+        }
+    }
+
+    private func stopTimer() {
+        timer?.invalidate()
+        timer = nil
+    }
+
+    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        isPlaying = false
+        self.player = nil
     }
 }
 

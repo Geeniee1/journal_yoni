@@ -27,15 +27,19 @@ struct ScreenContainer<Content: View>: View {
                                 .tracking(1.4)
                         }
 
-                        VStack(alignment: .leading, spacing: AppTheme.Spacing.xSmall) {
-                            Text(title)
-                                .font(AppTheme.Typography.hero)
-                                .foregroundStyle(AppTheme.Colors.primaryText)
-                            if let subtitle {
-                                Text(subtitle)
-                                    .font(AppTheme.Typography.body)
-                                    .foregroundStyle(AppTheme.Colors.secondaryText)
-                                    .fixedSize(horizontal: false, vertical: true)
+                        if !title.isEmpty || subtitle != nil {
+                            VStack(alignment: .leading, spacing: AppTheme.Spacing.xSmall) {
+                                if !title.isEmpty {
+                                    Text(title)
+                                        .font(AppTheme.Typography.hero)
+                                        .foregroundStyle(AppTheme.Colors.primaryText)
+                                }
+                                if let subtitle {
+                                    Text(subtitle)
+                                        .font(AppTheme.Typography.body)
+                                        .foregroundStyle(AppTheme.Colors.secondaryText)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
                             }
                         }
                     }
@@ -194,11 +198,7 @@ struct LotusRatingIcon: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            Image("lotus-rating-\(level)")
-                .resizable()
-                .interpolation(.high)
-                .scaledToFit()
-                .frame(width: 58, height: 58)
+            lotusImage(size: 58)
                 .shadow(color: isSelected ? AppTheme.Colors.accent.opacity(0.28) : .clear, radius: 12)
                 .scaleEffect(isSelected ? 1.03 : 0.98)
                 .opacity(isSelected ? 1 : 0.82)
@@ -211,6 +211,15 @@ struct LotusRatingIcon: View {
         }
         .frame(maxWidth: .infinity)
     }
+
+    private func lotusImage(size: CGFloat) -> some View {
+        Image("lotus-rating-\(level)")
+            .resizable()
+            .interpolation(.high)
+            .scaledToFill()
+            .frame(width: size, height: size)
+            .clipShape(Circle())
+    }
 }
 
 struct LotusRatingBadge: View {
@@ -221,8 +230,9 @@ struct LotusRatingBadge: View {
             Image("lotus-rating-\(rating)")
                 .resizable()
                 .interpolation(.high)
-                .scaledToFit()
+                .scaledToFill()
                 .frame(width: 34, height: 34)
+                .clipShape(Circle())
 
             Text("\(rating)/10")
                 .font(AppTheme.Typography.caption)

@@ -1,3 +1,4 @@
+import AVFoundation
 import SwiftUI
 import SwiftData
 
@@ -27,6 +28,9 @@ struct HomeView: View {
     @State private var isSelectingThreads = false
     @State private var selectedThreadIDs: Set<String> = []
     @State private var isShowingDeleteSelectedThreadsConfirmation = false
+
+    private let photoStorage = PhotoStorageService()
+    private let audioMemoStorage = AudioMemoStorageService()
 
     private var visibleThreads: [PersonThread] {
         sortOption.sorted(
@@ -106,8 +110,8 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             ScreenContainer(
-                title: "Connections",
-                subtitle: "Search what happened, keep upcoming plans in view, and revisit any thread in seconds.",
+                title: "",
+                subtitle: nil,
                 eyebrow: "Home"
             ) {
                 searchField
@@ -563,6 +567,12 @@ struct HomeView: View {
     }
 
     private func delete(_ entry: JournalEntry) {
+        for photo in entry.photoItems {
+            photoStorage.delete(photo)
+        }
+        if let voiceMemoFileName = entry.voiceMemoFileName {
+            audioMemoStorage.delete(fileName: voiceMemoFileName)
+        }
         modelContext.delete(entry)
         try? modelContext.save()
     }
@@ -573,6 +583,12 @@ struct HomeView: View {
             .flatMap(\.entries)
 
         for entry in entriesToDelete {
+            for photo in entry.photoItems {
+                photoStorage.delete(photo)
+            }
+            if let voiceMemoFileName = entry.voiceMemoFileName {
+                audioMemoStorage.delete(fileName: voiceMemoFileName)
+            }
             modelContext.delete(entry)
         }
 
@@ -1577,6 +1593,7 @@ private struct EntryDetailView: View {
     @State private var isEditing = false
     @State private var isShowingNewEntry = false
     @State private var isShowingDeleteConfirmation = false
+    private let audioMemoStorage = AudioMemoStorageService()
     let entry: JournalEntry
     let onDelete: () -> Void
 
@@ -1602,6 +1619,13 @@ private struct EntryDetailView: View {
                 Text(entry.notes)
                     .font(AppTheme.Typography.body)
                     .foregroundStyle(AppTheme.Colors.primaryText)
+
+                if let voiceMemoFileName = entry.voiceMemoFileName {
+                    VoiceMemoPlaybackCard(
+                        fileURL: audioMemoStorage.audioURL(for: voiceMemoFileName),
+                        duration: entry.voiceMemoDuration
+                    )
+                }
 
                 if !entry.tags.isEmpty {
                     FlowTagsView(tags: entry.tags)
@@ -1643,6 +1667,12 @@ private struct EntryDetailView: View {
                     dismiss()
                 } label: {
                     Image(systemName: "chevron.left")
+                }
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                ShareLink(item: entry.shareSummaryText) {
+                    Image(systemName: "square.and.arrow.up")
                 }
             }
 
@@ -1773,6 +1803,88 @@ private struct PositionPreviewTile: View {
             RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium, style: .continuous)
                 .stroke(Color.white.opacity(0.2), lineWidth: 1)
         }
+    }
+}
+
+private struct VoiceMemoPlaybackCard: View {
+    let fileURL: URL
+    let duration: Double?
+
+    @StateObject private var player = VoiceMemoPlayer()
+
+    private var durationText: String {
+        guard let duration else { return "Voice memo attached" }
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = duration >= 3600 ? [.hour, .minute, .second] : [.minute, .second]
+        formatter.zeroFormattingBehavior = [.pad]
+        return formatter.string(from: duration) ?? "Voice memo attached"
+    }
+
+    var body: some View {
+        HStack(spacing: AppTheme.Spacing.medium) {
+            Button {
+                player.togglePlayback(url: fileURL)
+            } label: {
+                Image(systemName: player.isPlaying ? "pause.circle.fill" : "play.circle.fill")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(AppTheme.Colors.accent)
+                    .frame(width: 42, height: 42)
+                    .background(
+                        Circle()
+                            .fill(AppTheme.Colors.accentSoft.opacity(0.9))
+                    )
+            }
+            .buttonStyle(.plain)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Voice memo")
+                    .font(AppTheme.Typography.cardTitle)
+                    .foregroundStyle(AppTheme.Colors.primaryText)
+
+                Text(durationText)
+                    .font(AppTheme.Typography.caption)
+                    .foregroundStyle(AppTheme.Colors.secondaryText)
+            }
+
+            Spacer()
+        }
+        .glassCard()
+    }
+}
+
+@MainActor
+private final class VoiceMemoPlayer: NSObject, ObservableObject, AVAudioPlayerDelegate {
+    @Published var isPlaying = false
+
+    private var player: AVAudioPlayer?
+
+    func togglePlayback(url: URL) {
+        if isPlaying {
+            player?.stop()
+            player = nil
+            isPlaying = false
+            return
+        }
+
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playback, mode: .default)
+            try session.setActive(true)
+
+            let player = try AVAudioPlayer(contentsOf: url)
+            player.delegate = self
+            player.play()
+            self.player = player
+            isPlaying = true
+        } catch {
+            isPlaying = false
+            player = nil
+        }
+    }
+
+    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        isPlaying = false
+        self.player = nil
     }
 }
 

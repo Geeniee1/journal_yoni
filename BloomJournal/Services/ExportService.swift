@@ -29,7 +29,7 @@ struct ExportService {
     }
 
     private func makeCSV(from rows: [ExportEntry]) -> String {
-        let header = "id,date,updatedAt,name,type,rating,wouldMeetAgain,attractive,attractiveRating,tall,heightCentimeters,goodBody,goodBodyRating,goodFace,goodFaceRating,goodKisser,goodKisserRating,goodHead,goodHeadRating,longDuration,lengthCentimeters,madeMeCum,tags,greenFlags,redFlags,positions,notes,photoCount"
+        let header = "id,date,updatedAt,name,type,rating,wouldMeetAgain,attractive,attractiveRating,tall,heightCentimeters,goodBody,goodBodyRating,goodFace,goodFaceRating,goodKisser,goodKisserRating,goodHead,goodHeadRating,longDuration,lengthCentimeters,madeMeCum,tags,greenFlags,redFlags,positions,notes,photoCount,voiceMemoFileName,voiceMemoDuration"
         let lines = rows.map(csvLine(for:))
         return ([header] + lines).joined(separator: "\n")
     }
@@ -78,7 +78,9 @@ struct ExportService {
             String(row.madeMeCum)
         ] + exportedLists + [
             csvEscape(row.notes),
-            String(row.photoCount)
+            String(row.photoCount),
+            csvEscape(row.voiceMemoFileName ?? ""),
+            row.voiceMemoDuration.map { String($0) } ?? ""
         ]
     }
 
@@ -116,6 +118,8 @@ private struct ExportEntry: Codable {
     let positionIDs: [String]
     let notes: String
     let photoCount: Int
+    let voiceMemoFileName: String?
+    let voiceMemoDuration: Double?
 
     init(entry: JournalEntry) {
         id = entry.id
@@ -146,5 +150,7 @@ private struct ExportEntry: Codable {
         positionIDs = entry.positionIDs
         notes = entry.notes
         photoCount = entry.photoItems.count
+        voiceMemoFileName = entry.voiceMemoFileName
+        voiceMemoDuration = entry.voiceMemoDuration
     }
 }

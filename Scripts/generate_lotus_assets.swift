@@ -7,7 +7,18 @@ let assetsRoot = projectRoot.appendingPathComponent("BloomJournal/Resources/Asse
 let importedSourcesRoot = projectRoot.appendingPathComponent("BloomJournal/Resources/ImportedSources", isDirectory: true)
 
 let appIconSourceURL = importedSourcesRoot.appendingPathComponent("app-icon-source.png")
-let lotusSheetSourceURL = importedSourcesRoot.appendingPathComponent("lotus-ratings-source.png")
+let lotusRatingSourceFilenames = [
+    "lotus-rating-source-1.png",
+    "lotus-rating-source-2.png",
+    "lotus-rating-source-3.png",
+    "lotus-rating-source-4.png",
+    "lotus-rating-source-5.png",
+    "lotus-rating-source-6.png",
+    "lotus-rating-source-7.png",
+    "lotus-rating-source-8.png",
+    "lotus-rating-source-9.png",
+    "lotus-rating-source-10.png"
+]
 let avatarSourceFilenames = [
     "profile-avatar-source-1.png",
     "profile-avatar-source-2.png",
@@ -28,19 +39,6 @@ struct AppIconSpec {
     let scale: String
     let pixels: Int
     let filename: String
-}
-
-struct ComponentBounds {
-    let minX: Int
-    let minY: Int
-    let maxX: Int
-    let maxY: Int
-    let pixelCount: Int
-
-    var width: Int { maxX - minX + 1 }
-    var height: Int { maxY - minY + 1 }
-    var centerX: Double { Double(minX + maxX) / 2.0 }
-    var centerY: Double { Double(minY + maxY) / 2.0 }
 }
 
 let appIconSpecs: [AppIconSpec] = [
@@ -64,12 +62,9 @@ let appIconSpecs: [AppIconSpec] = [
     .init(idiom: "ios-marketing", size: "1024x1024", scale: "1x", pixels: 1024, filename: "app-icon-1024.png")
 ]
 
-let ratingToSourceNumber = [1, 2, 3, 4, 7, 6, 8, 11, 14, 15]
 enum AssetGenerationError: Error {
     case missingSourceImage(URL)
     case cgImageUnavailable(URL)
-    case invalidCropRect(Int)
-    case expectedDetectedIcons(Int)
 }
 
 func loadImage(from url: URL) throws -> NSImage {
@@ -136,131 +131,6 @@ func resizedPNGData(from source: CGImage, size: Int) throws -> Data {
     return data
 }
 
-func cropImage(_ source: CGImage, to rect: CGRect) throws -> NSImage {
-    guard let cropped = source.cropping(to: rect.integral) else {
-        throw AssetGenerationError.invalidCropRect(Int(rect.origin.x))
-    }
-    let image = NSImage(cgImage: cropped, size: NSSize(width: cropped.width, height: cropped.height))
-    return image
-}
-
-func detectRingComponents(in source: CGImage) throws -> [ComponentBounds] {
-    guard let dataProvider = source.dataProvider,
-          let data = dataProvider.data,
-          let bytes = CFDataGetBytePtr(data) else {
-        throw AssetGenerationError.cgImageUnavailable(lotusSheetSourceURL)
-    }
-
-    let width = source.width
-    let height = source.height
-    let bytesPerRow = source.bytesPerRow
-    let bytesPerPixel = source.bitsPerPixel / 8
-    let backgroundThreshold = 105
-    var visited = Array(repeating: false, count: width * height)
-    var components: [ComponentBounds] = []
-
-    func pixelOffset(x: Int, y: Int) -> Int {
-        (y * bytesPerRow) + (x * bytesPerPixel)
-    }
-
-    func isForeground(x: Int, y: Int) -> Bool {
-        let offset = pixelOffset(x: x, y: y)
-        let red = Int(bytes[offset])
-        let green = Int(bytes[offset + 1])
-        let blue = Int(bytes[offset + 2])
-        return max(red, green, blue) > backgroundThreshold
-    }
-
-    for y in 0..<height {
-        for x in 0..<width {
-            let index = y * width + x
-            guard !visited[index], isForeground(x: x, y: y) else { continue }
-
-            var queue = [(x: Int, y: Int)]()
-            queue.reserveCapacity(1024)
-            queue.append((x, y))
-            visited[index] = true
-
-            var pointer = 0
-            var minX = x
-            var minY = y
-            var maxX = x
-            var maxY = y
-            var pixelCount = 0
-
-            while pointer < queue.count {
-                let point = queue[pointer]
-                pointer += 1
-                pixelCount += 1
-
-                minX = min(minX, point.x)
-                minY = min(minY, point.y)
-                maxX = max(maxX, point.x)
-                maxY = max(maxY, point.y)
-
-                let neighbors = [
-                    (point.x - 1, point.y),
-                    (point.x + 1, point.y),
-                    (point.x, point.y - 1),
-                    (point.x, point.y + 1)
-                ]
-
-                for neighbor in neighbors {
-                    guard neighbor.0 >= 0, neighbor.0 < width, neighbor.1 >= 0, neighbor.1 < height else { continue }
-                    let neighborIndex = neighbor.1 * width + neighbor.0
-                    guard !visited[neighborIndex], isForeground(x: neighbor.0, y: neighbor.1) else { continue }
-                    visited[neighborIndex] = true
-                    queue.append((neighbor.0, neighbor.1))
-                }
-            }
-
-            let component = ComponentBounds(
-                minX: minX,
-                minY: minY,
-                maxX: maxX,
-                maxY: maxY,
-                pixelCount: pixelCount
-            )
-
-            if component.width > 110 && component.height > 110 && component.pixelCount > 300 {
-                components.append(component)
-            }
-        }
-    }
-
-    let sortedByPosition = components
-        .sorted { lhs, rhs in
-            if abs(lhs.centerY - rhs.centerY) > 40 {
-                return lhs.centerY > rhs.centerY
-            }
-            return lhs.centerX < rhs.centerX
-        }
-
-    var rows: [[ComponentBounds]] = []
-    for component in sortedByPosition {
-        if let lastIndex = rows.indices.last {
-            let referenceY = rows[lastIndex].map(\.centerY).reduce(0, +) / Double(rows[lastIndex].count)
-            if abs(component.centerY - referenceY) < 90 {
-                rows[lastIndex].append(component)
-            } else {
-                rows.append([component])
-            }
-        } else {
-            rows.append([component])
-        }
-    }
-
-    let flattened = rows.flatMap { row in
-        row.sorted { $0.centerX < $1.centerX }
-    }
-
-    guard flattened.count >= 15 else {
-        throw AssetGenerationError.expectedDetectedIcons(flattened.count)
-    }
-
-    return Array(flattened.prefix(15))
-}
-
 func writeJSON(_ object: Any, to url: URL) throws {
     let data = try JSONSerialization.data(withJSONObject: object, options: [.prettyPrinted, .sortedKeys])
     try data.write(to: url, options: .atomic)
@@ -292,29 +162,9 @@ func generateAppIcons() throws {
 }
 
 func generateRatingIcons() throws {
-    let source = try loadImage(from: lotusSheetSourceURL)
-    let cgSource = try cgImage(from: source, url: lotusSheetSourceURL)
-    let detectedIcons = try detectRingComponents(in: cgSource)
-
-    for (ratingIndex, sourceNumber) in ratingToSourceNumber.enumerated() {
-        let component = detectedIcons[sourceNumber - 1]
-        let padding = 28
-        let squareSize = max(component.width, component.height) + (padding * 2)
-        let centerX = Int(component.centerX.rounded())
-        let centerY = Int(component.centerY.rounded())
-        let proposedX = centerX - (squareSize / 2)
-        let proposedY = centerY - (squareSize / 2)
-        let clampedX = max(0, min(proposedX, cgSource.width - squareSize))
-        let clampedY = max(0, min(proposedY, cgSource.height - squareSize))
-
-        let cropRect = CGRect(
-            x: clampedX,
-            y: clampedY,
-            width: squareSize,
-            height: squareSize
-        )
-
-        let image = try cropImage(cgSource, to: cropRect)
+    for (ratingIndex, sourceFilename) in lotusRatingSourceFilenames.enumerated() {
+        let sourceURL = importedSourcesRoot.appendingPathComponent(sourceFilename)
+        let image = try loadImage(from: sourceURL)
         let assetName = "lotus-rating-\(ratingIndex + 1)"
         let filename = "\(assetName).png"
         let imageSetURL = assetsRoot.appendingPathComponent("\(assetName).imageset", isDirectory: true)

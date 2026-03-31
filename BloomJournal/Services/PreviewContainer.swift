@@ -16,7 +16,11 @@ enum PreviewContainer {
             intention: "I’m looking for playful honesty and mutual care.",
             avatarAssetName: "profile-avatar-1"
         )
-        let settings = AppSettings(isBiometricLockEnabled: false, themePreference: .light)
+        let settings = AppSettings(
+            isBiometricLockEnabled: false,
+            themePreference: .light,
+            hasSeenWelcome: true
+        )
         let entries = SampleEntries.make()
         let unlocks = [
             AchievementUnlock(achievementID: "achievement-1"),

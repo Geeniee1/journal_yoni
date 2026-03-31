@@ -15,9 +15,12 @@ struct ProfileView: View {
     @State private var exportError: String?
     @State private var isShowingAvatarPicker = false
     @State private var selectedStatPreview: ProfileStatPreview?
+    @State private var isShowingStartFreshConfirmation = false
 
     private let exportService = ExportService()
     private let achievementEngine = AchievementEngine()
+    private let photoStorage = PhotoStorageService()
+    private let audioMemoStorage = AudioMemoStorageService()
 
     private var profile: UserProfile? {
         profiles.first
@@ -55,6 +58,18 @@ struct ProfileView: View {
         return AchievementCatalog.all.filter { combined.contains($0.id) }
     }
 
+    private var profileShareSummary: String {
+        [
+            profile?.displayName.isEmpty == false ? "\(profile?.displayName ?? "Yoni Journal") · Profile Summary" : "Yoni Journal · Profile Summary",
+            "Total entries: \(entries.count)",
+            "Total connections: \(totalConnections)",
+            "Total hookups: \(totalHookups)",
+            "Total sexy times: \(totalSexyTimes)",
+            "Total dates: \(totalDates)",
+            "Most used tag: \(mostUsedTag)"
+        ].joined(separator: "\n")
+    }
+
     var body: some View {
         ScreenContainer(
             title: profile?.displayName.isEmpty == false ? profile?.displayName ?? "Your Profile" : "Your Profile",
@@ -67,12 +82,21 @@ struct ProfileView: View {
             achievementsSection
             settingsSection
             supportSection
+            startFreshSection
         }
         .navigationTitle("Profile")
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await SeedDataService.ensureSingletonsIfNeeded(modelContext: modelContext)
             lockController.setAppLockEnabled(appSettings.isBiometricLockEnabled)
+        }
+        .alert("Start fresh?", isPresented: $isShowingStartFreshConfirmation) {
+            Button("Delete Everything", role: .destructive) {
+                startFresh()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will permanently delete all journal entries, planned entries, notes, tags, green flags, red flags, positions, achievements, avatar choice, preferences, and app settings. Yoni Journal will reopen in a blank first-time state.")
         }
         .sheet(item: $selectedStatPreview) { preview in
             NavigationStack {
@@ -240,7 +264,15 @@ struct ProfileView: View {
 
     private var reflectionJourney: some View {
         VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
-            SectionHeader("Archive snapshot", subtitle: "Tap a category to preview the entries inside it.")
+            HStack(alignment: .top, spacing: AppTheme.Spacing.medium) {
+                SectionHeader("Archive snapshot", subtitle: "Tap a category to preview the entries inside it.")
+                Spacer()
+                ShareLink(item: profileShareSummary) {
+                    Label("Share Summary", systemImage: "square.and.arrow.up")
+                        .font(AppTheme.Typography.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.Colors.accent)
+                }
+            }
 
             archiveStatGrid
         }
@@ -507,13 +539,22 @@ struct ProfileView: View {
                     .font(.system(.title3, design: .serif).weight(.semibold))
                     .foregroundStyle(AppTheme.Colors.primaryText)
 
-                Text("This app was created as a hobby project by Geeniee. The intention was for the app to be completely free, but if you enjoy it and would like to support the creator, please consider buying them a coffee! ☕️")
-                    .font(AppTheme.Typography.body)
-                    .foregroundStyle(AppTheme.Colors.secondaryText)
+                HStack(alignment: .top, spacing: AppTheme.Spacing.small) {
+                    Image(systemName: "cup.and.saucer.fill")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(AppTheme.Colors.accent)
+                        .padding(.top, 2)
 
-                Button("☕ Buy Me a Coffee") {
+                    Text("This app was created as a hobby project. The illustrations are inspired by those made by Emily Schiff-Slater in the column '56 best sex positions for couples to try in 2026, according to a sex therapist' in Women's Health Magazine written by Rachel Wright. The illustrations in this project were made by Emma S. The intention was for the app to be completely free, but if you enjoy it and would like to support the creators, please consider buying them a coffee.")
+                        .font(AppTheme.Typography.body)
+                        .foregroundStyle(AppTheme.Colors.secondaryText)
+                }
+
+                Button {
                     guard let url = URL(string: appSettings.buyMeACoffeeURL), !appSettings.buyMeACoffeeURL.isEmpty else { return }
                     openURL(url)
+                } label: {
+                    Label("Buy Me a Coffee", systemImage: "cup.and.saucer.fill")
                 }
                 .buttonStyle(PrimaryButtonStyle())
 
@@ -541,6 +582,28 @@ struct ProfileView: View {
             }
         }
         .glassCard()
+    }
+
+    private var startFreshSection: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
+            SectionHeader("Start fresh", subtitle: "Reset the app back to a blank first-time state.")
+
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
+                Text("This permanently deletes your journal archive, preferences, achievements, avatar, and settings.")
+                    .font(AppTheme.Typography.body)
+                    .foregroundStyle(AppTheme.Colors.secondaryText)
+
+                Button(role: .destructive) {
+                    isShowingStartFreshConfirmation = true
+                } label: {
+                    Label("Start Fresh", systemImage: "arrow.counterclockwise.circle.fill")
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                }
+                .buttonStyle(PrimaryButtonStyle())
+            }
+            .glassCard()
+        }
     }
 
     private func profileField(_ placeholder: String, text: Binding<String>) -> some View {
@@ -598,6 +661,45 @@ struct ProfileView: View {
 
         mutate(target)
         try? modelContext.save()
+    }
+
+    private func startFresh() {
+        exportPayload = nil
+        exportError = nil
+        selectedStatPreview = nil
+        isShowingAvatarPicker = false
+
+        for entry in entries {
+            for photo in entry.photoItems {
+                photoStorage.delete(photo)
+            }
+            if let voiceMemoFileName = entry.voiceMemoFileName {
+                audioMemoStorage.delete(fileName: voiceMemoFileName)
+            }
+            modelContext.delete(entry)
+        }
+
+        for unlock in unlocks {
+            modelContext.delete(unlock)
+        }
+
+        for profile in profiles {
+            modelContext.delete(profile)
+        }
+
+        for setting in settings {
+            modelContext.delete(setting)
+        }
+
+        try? modelContext.save()
+
+        let freshProfile = UserProfile()
+        let freshSettings = AppSettings()
+        modelContext.insert(freshProfile)
+        modelContext.insert(freshSettings)
+        try? modelContext.save()
+
+        lockController.setAppLockEnabled(false)
     }
 }
 
