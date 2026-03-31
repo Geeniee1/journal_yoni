@@ -13,10 +13,16 @@ enum PreviewContainer {
         let profile = UserProfile(displayName: "Mika", bio: "Curious, warm, and open to real chemistry.", intention: "I’m looking for playful honesty and mutual care.")
         let settings = AppSettings(isBiometricLockEnabled: false, themePreference: .light)
         let entries = SampleEntries.make()
+        let unlocks = [
+            AchievementUnlock(achievementID: "achievement-1"),
+            AchievementUnlock(achievementID: "achievement-2"),
+            AchievementUnlock(achievementID: "achievement-8")
+        ]
 
         context.insert(profile)
         context.insert(settings)
         entries.forEach { context.insert($0) }
+        unlocks.forEach { context.insert($0) }
         try? context.save()
         return container
     }
@@ -36,7 +42,8 @@ enum SampleEntries {
                 goodKisser: true,
                 madeMeCum: true,
                 greenFlags: ["communicative", "gentle"],
-                redFlags: ["late reply"]
+                redFlags: ["late reply"],
+                positionIDs: ["position-1", "position-2"]
             ),
             JournalEntry(
                 entryDate: Calendar.current.date(byAdding: .day, value: -9, to: .now) ?? .now,
@@ -47,7 +54,8 @@ enum SampleEntries {
                 tags: ["first time", "fun"],
                 wouldMeetAgain: true,
                 goodKisser: true,
-                greenFlags: ["present", "asks questions"]
+                greenFlags: ["present", "asks questions"],
+                positionIDs: ["position-8"]
             ),
             JournalEntry(
                 entryDate: Calendar.current.date(byAdding: .day, value: -17, to: .now) ?? .now,
@@ -59,7 +67,8 @@ enum SampleEntries {
                 goodHead: true,
                 longDuration: true,
                 greenFlags: ["funny"],
-                redFlags: ["inconsistent"]
+                redFlags: ["inconsistent"],
+                positionIDs: ["position-6", "position-7"]
             )
         ]
     }

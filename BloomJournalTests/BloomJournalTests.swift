@@ -18,7 +18,8 @@ struct BloomJournalTests {
             wouldMeetAgain: true,
             goodKisser: true,
             greenFlags: ["communicative"],
-            redFlags: ["late"]
+            redFlags: ["late"],
+            positionIDs: ["position-1", "position-3"]
         )
 
         context.insert(entry)
@@ -31,23 +32,14 @@ struct BloomJournalTests {
         #expect(fetched.first?.rating == 8)
         #expect(fetched.first?.wouldMeetAgain == true)
         #expect(fetched.first?.greenFlags == ["communicative"])
+        #expect(fetched.first?.positionIDs == ["position-1", "position-3"])
     }
 
     @Test
-    @MainActor
-    func achievementEngineUnlocksExpectedMilestones() {
-        let entries = [
-            JournalEntry(personNameOrAlias: "A", connectionType: .ongoing, notes: "", tags: ["fun"]),
-            JournalEntry(personNameOrAlias: "B", connectionType: .ongoing, notes: "", tags: ["fun"]),
-            JournalEntry(personNameOrAlias: "C", connectionType: .ongoing, notes: "", tags: ["fun"]),
-            JournalEntry(personNameOrAlias: "D", connectionType: .date, notes: "", tags: ["fun"]),
-            JournalEntry(personNameOrAlias: "E", connectionType: .hookup, notes: "", tags: ["fun"])
-        ]
-
-        let unlocked = AchievementEngine().unlockedIDs(entries: entries)
-
-        #expect(unlocked.contains("first-entry"))
-        #expect(unlocked.contains("fun-five"))
-        #expect(unlocked.contains("ongoing-story"))
+    func placeholderCatalogsExposeExpectedCounts() {
+        #expect(PositionCatalog.all.count == 70)
+        #expect(AchievementCatalog.all.count == 100)
+        #expect(AchievementCatalog.positionAchievementIDs.contains("achievement-1"))
+        #expect(!AchievementCatalog.positionAchievementIDs.contains("achievement-100"))
     }
 }

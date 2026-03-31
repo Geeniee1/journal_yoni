@@ -2,9 +2,7 @@ import Foundation
 
 struct AchievementDefinition: Identifiable, Hashable {
     enum Rule: Hashable {
-        case totalEntries(Int)
-        case tagCount(String, Int)
-        case connectionType(ConnectionType, Int)
+        case manualUnlock
     }
 
     let id: String
@@ -15,39 +13,51 @@ struct AchievementDefinition: Identifiable, Hashable {
     let rule: Rule
 }
 
-enum AchievementCatalog {
-    static let all: [AchievementDefinition] = [
-        .init(
-            id: "first-entry",
-            title: "First Entry",
-            subtitle: "Capture your first connection.",
-            illustrationAssetName: "achievement-first-entry",
-            symbolName: "sparkles",
-            rule: .totalEntries(1)
-        ),
-        .init(
-            id: "ten-connections",
-            title: "10 Connections",
-            subtitle: "Log ten moments that mattered.",
-            illustrationAssetName: "achievement-ten-connections",
-            symbolName: "heart.circle.fill",
-            rule: .totalEntries(10)
-        ),
-        .init(
-            id: "fun-five",
-            title: "Fun x5",
-            subtitle: "Use the tag “fun” five times.",
-            illustrationAssetName: "achievement-fun-five",
-            symbolName: "party.popper.fill",
-            rule: .tagCount("fun", 5)
-        ),
-        .init(
-            id: "ongoing-story",
-            title: "Ongoing Story",
-            subtitle: "Track three ongoing connections.",
-            illustrationAssetName: "achievement-ongoing-story",
-            symbolName: "infinity.circle.fill",
-            rule: .connectionType(.ongoing, 3)
-        )
+struct PositionDefinition: Identifiable, Hashable {
+    let id: String
+    let name: String
+    let achievementID: String
+    let symbolName: String
+}
+
+enum PositionCatalog {
+    private static let symbols = [
+        "heart.circle.fill",
+        "sparkles",
+        "moon.stars.fill",
+        "flame.fill",
+        "bolt.heart.fill",
+        "sun.max.fill",
+        "drop.fill",
+        "waveform.path.ecg",
+        "leaf.fill",
+        "star.circle.fill"
     ]
+
+    static let all: [PositionDefinition] = (1...70).map { index in
+        PositionDefinition(
+            id: "position-\(index)",
+            name: "Position \(index)",
+            achievementID: "achievement-\(index)",
+            symbolName: symbols[(index - 1) % symbols.count]
+        )
+    }
+}
+
+enum AchievementCatalog {
+    static let all: [AchievementDefinition] = (1...100).map { index in
+        let isPositionAchievement = index <= PositionCatalog.all.count
+        return AchievementDefinition(
+            id: "achievement-\(index)",
+            title: "Achievement \(index)",
+            subtitle: isPositionAchievement
+                ? "Unlocks when Position \(index) is saved in any entry."
+                : "Placeholder achievement waiting for future logic.",
+            illustrationAssetName: nil,
+            symbolName: isPositionAchievement ? PositionCatalog.all[index - 1].symbolName : "seal.fill",
+            rule: .manualUnlock
+        )
+    }
+
+    static let positionAchievementIDs: Set<String> = Set(PositionCatalog.all.map(\.achievementID))
 }

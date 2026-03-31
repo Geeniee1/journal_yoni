@@ -29,7 +29,7 @@ struct ExportService {
     }
 
     private func makeCSV(from rows: [ExportEntry]) -> String {
-        let header = "id,date,updatedAt,name,type,rating,wouldMeetAgain,goodKisser,goodHead,longDuration,madeMeCum,tags,greenFlags,redFlags,notes,photoCount"
+        let header = "id,date,updatedAt,name,type,rating,wouldMeetAgain,goodKisser,goodHead,longDuration,madeMeCum,tags,greenFlags,redFlags,positions,notes,photoCount"
         let lines = rows.map { row in
             [
                 row.id.uuidString,
@@ -46,6 +46,7 @@ struct ExportService {
                 csvEscape(row.tags.joined(separator: "|")),
                 csvEscape(row.greenFlags.joined(separator: "|")),
                 csvEscape(row.redFlags.joined(separator: "|")),
+                csvEscape(row.positionIDs.joined(separator: "|")),
                 csvEscape(row.notes),
                 String(row.photoCount)
             ]
@@ -74,6 +75,7 @@ private struct ExportEntry: Codable {
     let tags: [String]
     let greenFlags: [String]
     let redFlags: [String]
+    let positionIDs: [String]
     let notes: String
     let photoCount: Int
 
@@ -92,6 +94,7 @@ private struct ExportEntry: Codable {
         tags = entry.tags
         greenFlags = entry.greenFlags
         redFlags = entry.redFlags
+        positionIDs = entry.positionIDs
         notes = entry.notes
         photoCount = entry.photoItems.count
     }

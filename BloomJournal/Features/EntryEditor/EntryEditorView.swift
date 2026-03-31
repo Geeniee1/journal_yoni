@@ -26,6 +26,7 @@ struct EntryEditorView: View {
     @State private var greenFlags: [String] = []
     @State private var redFlagInput = ""
     @State private var redFlags: [String] = []
+    @State private var selectedPositionIDs: Set<String> = []
 
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var pendingPhotoData: [Data] = []
@@ -53,6 +54,7 @@ struct EntryEditorView: View {
             VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
                 basicsCard
                 experienceCard
+                positionsCard
                 notesAndFlagsCard
                 actionsCard
             }
@@ -204,6 +206,35 @@ struct EntryEditorView: View {
         .glassCard()
     }
 
+    private var positionsCard: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
+            SectionHeader(
+                "Positions",
+                subtitle: selectedPositionIDs.isEmpty
+                    ? "Select any positions you want to remember from this entry."
+                    : "\(selectedPositionIDs.count) selected"
+            )
+
+            LazyVGrid(
+                columns: Array(repeating: GridItem(.flexible(), spacing: AppTheme.Spacing.small), count: 3),
+                spacing: AppTheme.Spacing.small
+            ) {
+                ForEach(PositionCatalog.all) { position in
+                    Button {
+                        togglePosition(position.id)
+                    } label: {
+                        PositionSelectionTile(
+                            position: position,
+                            isSelected: selectedPositionIDs.contains(position.id)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .glassCard()
+    }
+
     private var actionsCard: some View {
         VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
             Button {
@@ -255,6 +286,7 @@ struct EntryEditorView: View {
         madeMeCum = entry.madeMeCum
         greenFlags = entry.greenFlags
         redFlags = entry.redFlags
+        selectedPositionIDs = Set(entry.positionIDs)
     }
 
     private func addTag(_ value: String, to items: inout [String]) {
@@ -265,6 +297,14 @@ struct EntryEditorView: View {
 
     private func remove(_ value: String, from items: inout [String]) {
         items.removeAll { $0 == value }
+    }
+
+    private func togglePosition(_ id: String) {
+        if selectedPositionIDs.contains(id) {
+            selectedPositionIDs.remove(id)
+        } else {
+            selectedPositionIDs.insert(id)
+        }
     }
 
     private func saveEntry() {
@@ -288,7 +328,8 @@ struct EntryEditorView: View {
                 longDuration: longDuration,
                 madeMeCum: madeMeCum,
                 greenFlags: greenFlags,
-                redFlags: redFlags
+                redFlags: redFlags,
+                positionIDs: Array(selectedPositionIDs).sorted()
             )
             modelContext.insert(createdEntry)
             targetEntry = createdEntry
@@ -308,6 +349,7 @@ struct EntryEditorView: View {
         targetEntry.madeMeCum = madeMeCum
         targetEntry.greenFlags = greenFlags
         targetEntry.redFlags = redFlags
+        targetEntry.positionIDs = Array(selectedPositionIDs).sorted()
 
         for data in pendingPhotoData {
             if let photo = try? photoStorage.saveImageData(data) {
@@ -315,6 +357,8 @@ struct EntryEditorView: View {
                 targetEntry.photoItems.append(photo)
             }
         }
+
+        persistPositionUnlocks()
 
         try? modelContext.save()
 
@@ -335,7 +379,18 @@ struct EntryEditorView: View {
             madeMeCum = false
             greenFlags = []
             redFlags = []
+            selectedPositionIDs = []
             pendingPhotoData = []
+        }
+    }
+
+    private func persistPositionUnlocks() {
+        let existingUnlocks = (try? modelContext.fetch(FetchDescriptor<AchievementUnlock>())) ?? []
+        let existingIDs = Set(existingUnlocks.map(\.achievementID))
+
+        for position in PositionCatalog.all where selectedPositionIDs.contains(position.id) {
+            guard !existingIDs.contains(position.achievementID) else { continue }
+            modelContext.insert(AchievementUnlock(achievementID: position.achievementID))
         }
     }
 }
@@ -416,6 +471,42 @@ private struct EditableTagWrap: View {
                 }
             }
         }
+    }
+}
+
+private struct PositionSelectionTile: View {
+    let position: PositionDefinition
+    let isSelected: Bool
+
+    var body: some View {
+        VStack(spacing: AppTheme.Spacing.small) {
+            Image(systemName: position.symbolName)
+                .font(.system(size: 26, weight: .semibold))
+                .foregroundStyle(isSelected ? AppTheme.Colors.accent : AppTheme.Colors.secondaryText)
+                .frame(width: 48, height: 48)
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(isSelected ? AppTheme.Colors.accentSoft.opacity(0.95) : Color.white.opacity(0.16))
+                )
+
+            Text(position.name)
+                .font(.system(.caption, design: .rounded).weight(.semibold))
+                .foregroundStyle(isSelected ? AppTheme.Colors.primaryText : AppTheme.Colors.secondaryText)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+        }
+        .frame(maxWidth: .infinity, minHeight: 112)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium, style: .continuous)
+                .fill(isSelected ? AppTheme.Colors.accentSoft.opacity(0.55) : Color.white.opacity(0.1))
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium, style: .continuous)
+                .stroke(isSelected ? AppTheme.Colors.accent.opacity(0.75) : Color.white.opacity(0.22), lineWidth: 1)
+        }
+        .saturation(isSelected ? 1 : 0)
     }
 }
 

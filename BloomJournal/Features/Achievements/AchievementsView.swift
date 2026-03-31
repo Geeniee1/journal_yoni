@@ -15,13 +15,14 @@ struct AchievementsView: View {
 
     private let columns = [
         GridItem(.flexible(), spacing: AppTheme.Spacing.medium),
+        GridItem(.flexible(), spacing: AppTheme.Spacing.medium),
         GridItem(.flexible(), spacing: AppTheme.Spacing.medium)
     ]
 
     var body: some View {
         ScreenContainer(
             title: "Achievements",
-            subtitle: "Small celebrations for the moments, honesty, and patterns you choose to keep."
+            subtitle: "\(unlockedIDs.count) of \(AchievementCatalog.all.count) unlocked so far."
         ) {
             if AchievementCatalog.all.isEmpty {
                 EmptyStateCard(
@@ -53,8 +54,12 @@ private struct AchievementTile: View {
         VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
             ZStack {
                 RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous)
-                    .fill(isUnlocked ? AppTheme.Colors.accentSoft.opacity(0.8) : Color.white.opacity(0.22))
-                    .frame(height: 120)
+                    .fill(isUnlocked ? AppTheme.Colors.accentSoft.opacity(0.86) : Color.white.opacity(0.08))
+                    .frame(height: 104)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous)
+                            .stroke(isUnlocked ? AppTheme.Colors.accent.opacity(0.55) : Color.white.opacity(0.18), lineWidth: 1)
+                    }
 
                 if let illustrationAssetName = achievement.illustrationAssetName,
                    UIImage(named: illustrationAssetName) != nil {
@@ -63,24 +68,27 @@ private struct AchievementTile: View {
                         .scaledToFit()
                         .padding()
                 } else {
-                    Image(systemName: isUnlocked ? achievement.symbolName : "lock.fill")
+                    Image(systemName: achievement.symbolName)
                         .font(.system(size: 28))
-                        .foregroundStyle(isUnlocked ? AppTheme.Colors.accent : AppTheme.Colors.secondaryText)
+                        .foregroundStyle(isUnlocked ? AppTheme.Colors.accent : AppTheme.Colors.secondaryText.opacity(0.7))
+                        .saturation(isUnlocked ? 1 : 0)
                 }
             }
 
             Text(achievement.title)
-                .font(AppTheme.Typography.cardTitle)
+                .font(.system(.subheadline, design: .rounded).weight(.semibold))
                 .foregroundStyle(AppTheme.Colors.primaryText)
+                .lineLimit(1)
 
             Text(achievement.subtitle)
                 .font(AppTheme.Typography.caption)
                 .foregroundStyle(AppTheme.Colors.secondaryText)
-                .lineLimit(3)
+                .lineLimit(2)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassCard()
-        .opacity(isUnlocked ? 1 : 0.78)
+        .saturation(isUnlocked ? 1 : 0)
+        .opacity(isUnlocked ? 1 : 0.62)
     }
 }
 

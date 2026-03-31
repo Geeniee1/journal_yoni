@@ -5,6 +5,8 @@ struct HomeView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \JournalEntry.updatedAt, order: .reverse) private var entries: [JournalEntry]
     @State private var searchText = ""
+    @State private var selectedEntry: JournalEntry?
+    @State private var entryPendingDeletion: JournalEntry?
 
     private var filteredEntries: [JournalEntry] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -17,6 +19,9 @@ struct HomeView: View {
                 || entry.tags.contains(where: { $0.localizedCaseInsensitiveContains(query) })
                 || entry.greenFlags.contains(where: { $0.localizedCaseInsensitiveContains(query) })
                 || entry.redFlags.contains(where: { $0.localizedCaseInsensitiveContains(query) })
+                || entry.positionIDs.contains(where: { id in
+                    (PositionCatalog.all.first(where: { $0.id == id })?.name.localizedCaseInsensitiveContains(query) ?? false)
+                })
         }
     }
 
@@ -49,6 +54,43 @@ struct HomeView: View {
                 }
             }
             .navigationBarHidden(true)
+            .sheet(item: $selectedEntry) { entry in
+                NavigationStack {
+                    EntryDetailView(
+                        entry: entry,
+                        onDelete: {
+                            delete(entry)
+                            selectedEntry = nil
+                        }
+                    )
+                }
+                .presentationDetents([.large])
+            }
+            .alert(
+                "Delete entry?",
+                isPresented: Binding(
+                    get: { entryPendingDeletion != nil },
+                    set: { isPresented in
+                        if !isPresented {
+                            entryPendingDeletion = nil
+                        }
+                    }
+                ),
+                presenting: entryPendingDeletion
+            ) { entry in
+                Button("Delete", role: .destructive) {
+                    delete(entry)
+                    if selectedEntry?.id == entry.id {
+                        selectedEntry = nil
+                    }
+                    entryPendingDeletion = nil
+                }
+                Button("Cancel", role: .cancel) {
+                    entryPendingDeletion = nil
+                }
+            } message: { _ in
+                Text("This entry will be permanently deleted.")
+            }
         }
     }
 
@@ -86,18 +128,29 @@ struct HomeView: View {
     private var listContent: some View {
         LazyVStack(spacing: AppTheme.Spacing.medium) {
             ForEach(filteredEntries) { entry in
-                NavigationLink {
-                    EntryDetailView(entry: entry)
-                } label: {
-                    EntryCard(entry: entry)
-                }
-                .buttonStyle(.plain)
-                .swipeActions {
-                    Button(role: .destructive) {
-                        delete(entry)
+                ZStack(alignment: .topLeading) {
+                    Button {
+                        selectedEntry = entry
                     } label: {
-                        Label("Delete", systemImage: "trash")
+                        EntryCard(entry: entry)
                     }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        entryPendingDeletion = entry
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 24, height: 24)
+                            .background(
+                                Circle()
+                                    .fill(Color.black.opacity(0.62))
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.leading, 10)
+                    .padding(.top, 10)
                 }
             }
         }
@@ -168,8 +221,11 @@ private struct EntryCard: View {
 }
 
 private struct EntryDetailView: View {
+    @Environment(\.dismiss) private var dismiss
     @State private var isEditing = false
+    @State private var isShowingDeleteConfirmation = false
     let entry: JournalEntry
+    let onDelete: () -> Void
 
     var body: some View {
         ScreenContainer(title: entry.personNameOrAlias, subtitle: entry.entryDate.formatted(date: .complete, time: .shortened)) {
@@ -204,11 +260,36 @@ private struct EntryDetailView: View {
                         FlowTagsView(tags: entry.redFlags)
                     }
                 }
+
+                if !entry.positionIDs.isEmpty {
+                    VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+                        SectionHeader("Positions")
+                        FlowTagsView(tags: entry.positionIDs.compactMap { id in
+                            PositionCatalog.all.first(where: { $0.id == id })?.name
+                        })
+                    }
+                }
             }
             .glassCard()
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "chevron.left")
+                }
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    isShowingDeleteConfirmation = true
+                } label: {
+                    Image(systemName: "trash")
+                }
+            }
+
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Edit") {
                     isEditing = true
@@ -220,6 +301,14 @@ private struct EntryDetailView: View {
                 EntryEditorView(entry: entry)
             }
             .presentationDetents([.large])
+        }
+        .alert("Delete entry?", isPresented: $isShowingDeleteConfirmation) {
+            Button("Delete", role: .destructive) {
+                onDelete()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This entry will be permanently deleted.")
         }
     }
 }
