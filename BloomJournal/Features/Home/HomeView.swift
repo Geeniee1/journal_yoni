@@ -359,6 +359,14 @@ struct HomeView: View {
             || !selectedPositionIDs.isEmpty
 
         guard hasActiveFilters else { return true }
+
+        if !selectedPositionIDs.isEmpty {
+            let threadPositionIDs = Set(thread.entries.flatMap(\.positionIDs))
+            guard selectedPositionIDs.isSubset(of: threadPositionIDs) else {
+                return false
+            }
+        }
+
         return thread.entries.contains(where: entryMatchesFilters)
     }
 
@@ -388,9 +396,6 @@ struct HomeView: View {
             return false
         }
         if requiresNotes, !hasMeaningfulNotes(entry) {
-            return false
-        }
-        if !selectedPositionIDs.isEmpty, selectedPositionIDs.intersection(Set(entry.positionIDs)).isEmpty {
             return false
         }
         return true
