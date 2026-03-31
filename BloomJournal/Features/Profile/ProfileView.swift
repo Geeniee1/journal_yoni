@@ -13,6 +13,7 @@ struct ProfileView: View {
 
     @State private var exportPayload: ExportPayload?
     @State private var exportError: String?
+    @State private var isShowingAvatarPicker = false
 
     private let exportService = ExportService()
     private let achievementEngine = AchievementEngine()
@@ -80,31 +81,24 @@ struct ProfileView: View {
 
     private var profileHero: some View {
         VStack(spacing: AppTheme.Spacing.medium) {
-            ZStack(alignment: .bottomTrailing) {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [AppTheme.Colors.accentSoft, Color.white.opacity(0.85)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 104, height: 104)
-                    .overlay {
-                        Image(systemName: "person.fill")
-                            .font(.system(size: 40))
-                            .foregroundStyle(AppTheme.Colors.plum)
-                    }
+            Button {
+                isShowingAvatarPicker = true
+            } label: {
+                ZStack(alignment: .bottomTrailing) {
+                    avatarView
+                        .frame(width: 104, height: 104)
 
-                Circle()
-                    .fill(AppTheme.Colors.accent)
-                    .frame(width: 34, height: 34)
-                    .overlay {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(.white)
-                    }
+                    Circle()
+                        .fill(AppTheme.Colors.accent)
+                        .frame(width: 34, height: 34)
+                        .overlay {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundStyle(.white)
+                        }
+                }
             }
+            .buttonStyle(.plain)
 
             VStack(spacing: 6) {
                 Text(profile?.displayName.isEmpty == false ? profile?.displayName ?? "" : "Yours, privately")
@@ -127,6 +121,42 @@ struct ProfileView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, AppTheme.Spacing.small)
         .glassCard()
+        .sheet(isPresented: $isShowingAvatarPicker) {
+            NavigationStack {
+                AvatarPickerView(selectedAvatarAssetName: Binding(
+                    get: { profile?.avatarAssetName },
+                    set: { newValue in
+                        updateProfile { $0.avatarAssetName = newValue }
+                    }
+                ))
+            }
+            .presentationDetents([.medium, .large])
+        }
+    }
+
+    private var avatarView: some View {
+        Group {
+            if let avatarAssetName = profile?.avatarAssetName, !avatarAssetName.isEmpty {
+                ProfileAvatarImage(assetName: avatarAssetName, size: 104)
+            } else {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                AppTheme.Colors.canvasDark.opacity(0.98),
+                                AppTheme.Colors.backgroundDark.opacity(0.96)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .overlay {
+                        Image(systemName: "person.fill")
+                            .font(.system(size: 40))
+                            .foregroundStyle(Color.white.opacity(0.82))
+                    }
+            }
+        }
     }
 
     private var profileEditor: some View {
@@ -454,6 +484,151 @@ struct ProfileView: View {
 
         mutate(target)
         try? modelContext.save()
+    }
+}
+
+private enum ProfileAvatarCatalog {
+    static let all: [ProfileAvatarOption] = (1...11).map { index in
+        ProfileAvatarOption(id: "profile-avatar-\(index)", assetName: "profile-avatar-\(index)")
+    }
+}
+
+private struct ProfileAvatarOption: Identifiable, Hashable {
+    let id: String
+    let assetName: String
+}
+
+private struct AvatarPickerView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Binding var selectedAvatarAssetName: String?
+
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: AppTheme.Spacing.medium), count: 3)
+
+    var body: some View {
+        ScreenContainer(
+            title: "Choose Avatar",
+            subtitle: "Keep the default silhouette or pick one of the imported icons."
+        ) {
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
+                Button {
+                    selectedAvatarAssetName = nil
+                    dismiss()
+                } label: {
+                    DefaultAvatarTile(isSelected: selectedAvatarAssetName == nil)
+                }
+                .buttonStyle(.plain)
+
+                LazyVGrid(columns: columns, spacing: AppTheme.Spacing.medium) {
+                    ForEach(ProfileAvatarCatalog.all) { avatar in
+                        Button {
+                            selectedAvatarAssetName = avatar.assetName
+                            dismiss()
+                        } label: {
+                            ProfileAvatarTile(
+                                assetName: avatar.assetName,
+                                isSelected: selectedAvatarAssetName == avatar.assetName
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+        .navigationTitle("Choose Avatar")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Done") {
+                    dismiss()
+                }
+            }
+        }
+    }
+}
+
+private struct DefaultAvatarTile: View {
+    let isSelected: Bool
+
+    var body: some View {
+        HStack(spacing: AppTheme.Spacing.medium) {
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            AppTheme.Colors.canvasDark.opacity(0.98),
+                            AppTheme.Colors.backgroundDark.opacity(0.96)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: 72, height: 72)
+                .overlay {
+                    Image(systemName: "person.fill")
+                        .font(.system(size: 28))
+                        .foregroundStyle(Color.white.opacity(0.82))
+                }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Default avatar")
+                    .font(AppTheme.Typography.cardTitle)
+                    .foregroundStyle(AppTheme.Colors.primaryText)
+                Text("Use the standard blank profile icon.")
+                    .font(AppTheme.Typography.caption)
+                    .foregroundStyle(AppTheme.Colors.secondaryText)
+            }
+
+            Spacer()
+
+            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(isSelected ? AppTheme.Colors.accent : AppTheme.Colors.secondaryText)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassCard()
+    }
+}
+
+private struct ProfileAvatarImage: View {
+    let assetName: String
+    let size: CGFloat
+
+    var body: some View {
+        Image(assetName)
+            .resizable()
+            .interpolation(.high)
+            .scaledToFill()
+            .frame(width: size, height: size)
+            .clipShape(Circle())
+            .overlay {
+                Circle()
+                    .stroke(Color.white.opacity(0.18), lineWidth: 1)
+            }
+    }
+}
+
+private struct ProfileAvatarTile: View {
+    let assetName: String
+    let isSelected: Bool
+
+    var body: some View {
+        VStack(spacing: AppTheme.Spacing.small) {
+            ProfileAvatarImage(assetName: assetName, size: 78)
+
+            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(isSelected ? AppTheme.Colors.accent : AppTheme.Colors.secondaryText)
+        }
+        .frame(maxWidth: .infinity, minHeight: 132)
+        .padding(AppTheme.Spacing.small)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large, style: .continuous)
+                .fill(isSelected ? AppTheme.Colors.accentSoft.opacity(0.55) : Color.white.opacity(0.14))
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large, style: .continuous)
+                .stroke(isSelected ? AppTheme.Colors.accent.opacity(0.8) : Color.white.opacity(0.2), lineWidth: 1)
+        }
     }
 }
 

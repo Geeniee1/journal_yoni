@@ -8,6 +8,19 @@ let importedSourcesRoot = projectRoot.appendingPathComponent("BloomJournal/Resou
 
 let appIconSourceURL = importedSourcesRoot.appendingPathComponent("app-icon-source.png")
 let lotusSheetSourceURL = importedSourcesRoot.appendingPathComponent("lotus-ratings-source.png")
+let avatarSourceFilenames = [
+    "profile-avatar-source-1.png",
+    "profile-avatar-source-2.png",
+    "profile-avatar-source-3.png",
+    "profile-avatar-source-4.png",
+    "profile-avatar-source-5.png",
+    "profile-avatar-source-6.png",
+    "profile-avatar-source-7.png",
+    "profile-avatar-source-8.png",
+    "profile-avatar-source-9.png",
+    "profile-avatar-source-10.png",
+    "profile-avatar-source-11.png"
+]
 
 struct AppIconSpec {
     let idiom: String
@@ -52,7 +65,6 @@ let appIconSpecs: [AppIconSpec] = [
 ]
 
 let ratingToSourceNumber = [1, 2, 3, 4, 7, 6, 8, 11, 14, 15]
-
 enum AssetGenerationError: Error {
     case missingSourceImage(URL)
     case cgImageUnavailable(URL)
@@ -321,6 +333,29 @@ func generateRatingIcons() throws {
     }
 }
 
+func generateProfileAvatars() throws {
+    for (avatarIndex, sourceFilename) in avatarSourceFilenames.enumerated() {
+        let sourceURL = importedSourcesRoot.appendingPathComponent(sourceFilename)
+        let image = try loadImage(from: sourceURL)
+        let assetName = "profile-avatar-\(avatarIndex + 1)"
+        let filename = "\(assetName).png"
+        let imageSetURL = assetsRoot.appendingPathComponent("\(assetName).imageset", isDirectory: true)
+        try fileManager.createDirectory(at: imageSetURL, withIntermediateDirectories: true)
+        try writePNG(image, to: imageSetURL.appendingPathComponent(filename))
+
+        let contents: [String: Any] = [
+            "images": [[
+                "idiom": "universal",
+                "filename": filename,
+                "scale": "1x"
+            ]],
+            "info": ["author": "xcode", "version": 1]
+        ]
+        try writeJSON(contents, to: imageSetURL.appendingPathComponent("Contents.json"))
+    }
+}
+
 try generateAppIcons()
 try generateRatingIcons()
-print("Imported exact lotus source assets.")
+try generateProfileAvatars()
+print("Imported exact lotus and profile avatar assets.")

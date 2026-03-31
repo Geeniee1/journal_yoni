@@ -10,7 +10,12 @@ enum PreviewContainer {
         let existingEntries = (try? context.fetch(FetchDescriptor<JournalEntry>())) ?? []
         guard existingEntries.isEmpty else { return container }
 
-        let profile = UserProfile(displayName: "Mika", bio: "Curious, warm, and open to real chemistry.", intention: "I’m looking for playful honesty and mutual care.")
+        let profile = UserProfile(
+            displayName: "Mika",
+            bio: "Curious, warm, and open to real chemistry.",
+            intention: "I’m looking for playful honesty and mutual care.",
+            avatarAssetName: "profile-avatar-1"
+        )
         let settings = AppSettings(isBiometricLockEnabled: false, themePreference: .light)
         let entries = SampleEntries.make()
         let unlocks = [

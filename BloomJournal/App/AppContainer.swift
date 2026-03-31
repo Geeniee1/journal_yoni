@@ -9,7 +9,7 @@ struct AppContainerFactory {
     let sharedModelContainer: ModelContainer
 
     init(inMemoryOnly: Bool = false) {
-        let schema = Schema(versionedSchema: YoniJournalSchemaV2.self)
+        let schema = Schema(versionedSchema: YoniJournalSchemaV3.self)
 
         let modelConfiguration: ModelConfiguration
         let storeURL: URL?
