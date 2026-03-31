@@ -410,6 +410,8 @@ struct ProfileView: View {
             }
             .glassCard()
 
+            preferenceSection
+
             VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
                 Text("Export")
                     .font(AppTheme.Typography.sectionTitle)
@@ -437,6 +439,63 @@ struct ProfileView: View {
             }
             .glassCard()
         }
+    }
+
+    private var preferenceSection: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
+            Text("Preferences")
+                .font(AppTheme.Typography.sectionTitle)
+
+            PreferenceStepperRow(
+                title: "Attractive",
+                valueText: "\(preferenceValue(\.preferredAttractiveRating))/10",
+                value: profileIntBinding(\.preferredAttractiveRating),
+                range: 1...10
+            )
+
+            PreferenceStepperRow(
+                title: "Height",
+                valueText: "\(preferenceValue(\.preferredHeightCentimeters)) cm",
+                value: profileIntBinding(\.preferredHeightCentimeters),
+                range: 120...230
+            )
+
+            PreferenceStepperRow(
+                title: "Good body",
+                valueText: "\(preferenceValue(\.preferredGoodBodyRating))/10",
+                value: profileIntBinding(\.preferredGoodBodyRating),
+                range: 1...10
+            )
+
+            PreferenceStepperRow(
+                title: "Good face",
+                valueText: "\(preferenceValue(\.preferredGoodFaceRating))/10",
+                value: profileIntBinding(\.preferredGoodFaceRating),
+                range: 1...10
+            )
+
+            PreferenceStepperRow(
+                title: "Good kisser",
+                valueText: "\(preferenceValue(\.preferredGoodKisserRating))/10",
+                value: profileIntBinding(\.preferredGoodKisserRating),
+                range: 1...10
+            )
+
+            PreferenceStepperRow(
+                title: "Good head",
+                valueText: "\(preferenceValue(\.preferredGoodHeadRating))/10",
+                value: profileIntBinding(\.preferredGoodHeadRating),
+                range: 1...10
+            )
+
+            PreferenceStepperRow(
+                title: "Length",
+                valueText: "\(preferenceValue(\.preferredLengthCentimeters)) cm",
+                value: profileIntBinding(\.preferredLengthCentimeters),
+                range: 0...30
+            )
+        }
+        .glassCard()
     }
 
     private var supportSection: some View {
@@ -511,6 +570,23 @@ struct ProfileView: View {
 
         mutate(target)
         try? modelContext.save()
+    }
+
+    private func profileIntBinding(_ keyPath: ReferenceWritableKeyPath<UserProfile, Int>) -> Binding<Int> {
+        Binding(
+            get: {
+                profile?[keyPath: keyPath] ?? UserProfile()[keyPath: keyPath]
+            },
+            set: { newValue in
+                updateProfile { profile in
+                    profile[keyPath: keyPath] = newValue
+                }
+            }
+        )
+    }
+
+    private func preferenceValue(_ keyPath: KeyPath<UserProfile, Int>) -> Int {
+        profile?[keyPath: keyPath] ?? UserProfile()[keyPath: keyPath]
     }
 
     private func saveSettings(_ mutate: (AppSettings) -> Void) {
@@ -667,6 +743,33 @@ private struct ProfileAvatarTile: View {
             RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large, style: .continuous)
                 .stroke(isSelected ? AppTheme.Colors.accent.opacity(0.8) : Color.white.opacity(0.2), lineWidth: 1)
         }
+    }
+}
+
+private struct PreferenceStepperRow: View {
+    let title: String
+    let valueText: String
+    @Binding var value: Int
+    let range: ClosedRange<Int>
+
+    var body: some View {
+        HStack(spacing: AppTheme.Spacing.medium) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(AppTheme.Typography.cardTitle)
+                    .foregroundStyle(AppTheme.Colors.primaryText)
+
+                Text(valueText)
+                    .font(AppTheme.Typography.caption)
+                    .foregroundStyle(AppTheme.Colors.secondaryText)
+            }
+
+            Spacer(minLength: 0)
+
+            Stepper("", value: $value, in: range)
+                .labelsHidden()
+        }
+        .padding(.vertical, 2)
     }
 }
 

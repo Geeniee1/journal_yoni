@@ -4,8 +4,10 @@ import SwiftData
 struct HomeView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \JournalEntry.updatedAt, order: .reverse) private var entries: [JournalEntry]
+    @Query private var profiles: [UserProfile]
     @State private var searchText = ""
     @State private var isShowingFilters = false
+    @State private var isShowingLeaderboard = false
     @State private var sortOption: HomeSortOption = .latestJournalEntry
     @State private var selectedConnectionTypes: Set<ConnectionType> = []
     @State private var requiresWouldMeetAgain = false
@@ -31,6 +33,19 @@ struct HomeView: View {
             threads: personThreads
                 .filter(threadMatchesFilters)
                 .filter(threadMatchesSearch)
+        )
+    }
+
+    private var preferenceProfile: UserPreferenceProfile {
+        guard let profile = profiles.first else { return .defaults }
+        return UserPreferenceProfile(
+            attractiveRating: profile.preferredAttractiveRating,
+            heightCentimeters: profile.preferredHeightCentimeters,
+            goodBodyRating: profile.preferredGoodBodyRating,
+            goodFaceRating: profile.preferredGoodFaceRating,
+            goodKisserRating: profile.preferredGoodKisserRating,
+            goodHeadRating: profile.preferredGoodHeadRating,
+            lengthCentimeters: profile.preferredLengthCentimeters
         )
     }
 
@@ -136,6 +151,13 @@ struct HomeView: View {
                 }
                 .presentationDetents([.large])
             }
+            .sheet(isPresented: $isShowingLeaderboard) {
+                NavigationStack {
+                    LeaderboardView(threads: personThreads, preferenceProfile: preferenceProfile)
+                }
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+            }
             .alert(
                 "Delete entry?",
                 isPresented: Binding(
@@ -202,67 +224,14 @@ struct HomeView: View {
 
     private var controlsCard: some View {
         VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
-            HStack(alignment: .center, spacing: AppTheme.Spacing.small) {
-                Button {
-                    isShowingFilters.toggle()
-                } label: {
-                    Label(
-                        activeFilterLabels.isEmpty ? "Filters" : "Filters (\(activeFilterLabels.count))",
-                        systemImage: "line.3.horizontal.decrease.circle"
-                    )
-                }
-                .buttonStyle(CapsuleToggleButtonStyle(isSelected: isShowingFilters || !activeFilterLabels.isEmpty))
-                .fixedSize(horizontal: true, vertical: false)
-
-                Menu {
-                    Picker("Sort", selection: $sortOption) {
-                        ForEach(HomeSortOption.allCases) { option in
-                            Text(option.title).tag(option)
-                        }
-                    }
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "arrow.up.arrow.down.circle")
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text("Sort")
-                                .font(.system(size: 11, weight: .bold, design: .rounded))
-                                .foregroundStyle(AppTheme.Colors.secondaryText)
-                            Text(sortOption.shortTitle)
-                                .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                                .foregroundStyle(AppTheme.Colors.primaryText)
-                        }
-                        Spacer(minLength: 0)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Capsule(style: .continuous).fill(Color.white.opacity(0.48)))
-                    .overlay {
-                        Capsule(style: .continuous)
-                            .stroke(Color.white.opacity(0.55), lineWidth: 1)
-                    }
-                }
-                .frame(maxWidth: .infinity)
+            HStack(spacing: AppTheme.Spacing.small) {
+                filtersControl
+                sortControl
             }
 
-            HStack(spacing: AppTheme.Spacing.medium) {
-                Spacer()
-
-                if !activeFilterLabels.isEmpty {
-                    Button("Clear") {
-                        clearAllFilters()
-                    }
-                    .font(AppTheme.Typography.caption.weight(.semibold))
-                    .foregroundStyle(AppTheme.Colors.warning)
-                }
-
-                if !isSelectingThreads {
-                    Button("Select") {
-                        isSelectingThreads = true
-                    }
-                    .font(AppTheme.Typography.caption.weight(.semibold))
-                    .foregroundStyle(AppTheme.Colors.accent)
-                }
+            HStack(spacing: AppTheme.Spacing.small) {
+                leaderboardControl
+                controlsActions
             }
 
             if !activeFilterLabels.isEmpty {
@@ -278,6 +247,111 @@ struct HomeView: View {
             }
         }
         .glassCard()
+    }
+
+    private var filtersControl: some View {
+        Button {
+            isShowingFilters.toggle()
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "line.3.horizontal.decrease.circle")
+                Text(activeFilterLabels.isEmpty ? "Filters" : "Filters (\(activeFilterLabels.count))")
+                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                    .foregroundStyle(AppTheme.Colors.primaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.9)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .frame(maxWidth: .infinity, minHeight: 56, alignment: .leading)
+            .background(
+                Capsule(style: .continuous)
+                    .fill((isShowingFilters || !activeFilterLabels.isEmpty) ? AppTheme.Colors.accentSoft.opacity(0.92) : Color.white.opacity(0.48))
+            )
+            .overlay {
+                Capsule(style: .continuous)
+                    .stroke((isShowingFilters || !activeFilterLabels.isEmpty) ? AppTheme.Colors.accent.opacity(0.85) : Color.white.opacity(0.55), lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity)
+    }
+
+    private var sortControl: some View {
+        Menu {
+            Picker("Sort", selection: $sortOption) {
+                ForEach(HomeSortOption.allCases) { option in
+                    Text(option.title).tag(option)
+                }
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.up.arrow.down.circle")
+                Text("Sort: \(sortOption.shortTitle)")
+                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                    .foregroundStyle(AppTheme.Colors.primaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .frame(maxWidth: .infinity, minHeight: 56, alignment: .leading)
+            .background(Capsule(style: .continuous).fill(Color.white.opacity(0.48)))
+            .overlay {
+                Capsule(style: .continuous)
+                    .stroke(Color.white.opacity(0.55), lineWidth: 1)
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var leaderboardControl: some View {
+        Button {
+            isShowingLeaderboard = true
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "list.number")
+                Text("Leaderboard")
+                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                    .foregroundStyle(AppTheme.Colors.primaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.9)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .frame(maxWidth: .infinity, minHeight: 56, alignment: .leading)
+            .background(Capsule(style: .continuous).fill(Color.white.opacity(0.48)))
+            .overlay {
+                Capsule(style: .continuous)
+                    .stroke(Color.white.opacity(0.55), lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity)
+    }
+
+    private var controlsActions: some View {
+        HStack(spacing: AppTheme.Spacing.medium) {
+            if !activeFilterLabels.isEmpty {
+                Button("Clear") {
+                    clearAllFilters()
+                }
+                .font(AppTheme.Typography.caption.weight(.semibold))
+                .foregroundStyle(AppTheme.Colors.warning)
+            }
+
+            if !isSelectingThreads {
+                Button("Select") {
+                    isSelectingThreads = true
+                }
+                .font(AppTheme.Typography.caption.weight(.semibold))
+                .foregroundStyle(AppTheme.Colors.accent)
+            }
+        }
+        .frame(minWidth: 92, alignment: .trailing)
     }
 
     private var selectionControlsCard: some View {
@@ -785,10 +859,6 @@ private struct PersonThread: Identifiable {
         entries.map(\.entryDate).min() ?? latestEntry.entryDate
     }
 
-    var score: Int {
-        latestEntry.rating
-    }
-
     var greenFlagCount: Int {
         entries.reduce(0) { $0 + $1.greenFlags.count }
     }
@@ -804,6 +874,62 @@ private struct PersonThread: Identifiable {
     var isPlannedFutureThread: Bool {
         latestEntry.isPlannedFutureEntry
     }
+
+    var userExperienceAverage: Double {
+        guard !entries.isEmpty else { return 0 }
+        let total = entries.reduce(0) { $0 + $1.rating }
+        return Double(total) / Double(entries.count)
+    }
+
+    var attributeAverages: PersonAttributeAverages {
+        PersonAttributeAverages(
+            attractive: averageScore(where: \.attractive, value: \.attractiveRating),
+            heightScore: averageHeightScore,
+            goodBody: averageScore(where: \.goodBody, value: \.goodBodyRating),
+            goodFace: averageScore(where: \.goodFace, value: \.goodFaceRating),
+            goodKisser: averageScore(where: \.goodKisser, value: \.goodKisserRating),
+            goodHead: averageScore(where: \.goodHead, value: \.goodHeadRating),
+            lengthScore: averageLengthScore
+        )
+    }
+
+    var averageCategoryRating: Double {
+        attributeAverages.averageScore
+    }
+
+    func preferenceMSE(using preferences: UserPreferenceProfile) -> Double? {
+        attributeAverages.preferenceMSE(using: preferences)
+    }
+
+    private func averageScore(
+        where predicate: KeyPath<JournalEntry, Bool>,
+        value: KeyPath<JournalEntry, Int>
+    ) -> Double? {
+        let matchingValues = entries
+            .filter { $0[keyPath: predicate] }
+            .map { Double($0[keyPath: value]) }
+
+        guard !matchingValues.isEmpty else { return nil }
+        return matchingValues.reduce(0, +) / Double(matchingValues.count)
+    }
+
+    private var averageHeightScore: Double? {
+        let heights = entries.compactMap { entry -> Double? in
+            guard entry.tall, let value = entry.heightCentimeters else { return nil }
+            return normalizedHeightScore(for: value)
+        }
+        guard !heights.isEmpty else { return nil }
+        return heights.reduce(0, +) / Double(heights.count)
+    }
+
+    private var averageLengthScore: Double? {
+        let lengths = entries.compactMap { entry -> Double? in
+            guard entry.longDuration, let value = entry.lengthCentimeters else { return nil }
+            return normalizedLengthScore(for: value)
+        }
+        guard !lengths.isEmpty else { return nil }
+        return lengths.reduce(0, +) / Double(lengths.count)
+    }
 }
 
 private struct PersonThreadSelection: Identifiable {
@@ -814,7 +940,8 @@ private struct PersonThreadSelection: Identifiable {
 private enum HomeSortOption: String, CaseIterable, Identifiable {
     case latestJournalEntry
     case initialJournalEntry
-    case score
+    case averageRating
+    case userExperience
     case greenFlags
     case redFlags
     case entryCount
@@ -825,7 +952,8 @@ private enum HomeSortOption: String, CaseIterable, Identifiable {
         switch self {
         case .latestJournalEntry: "Latest journal entry"
         case .initialJournalEntry: "Initial journal entry"
-        case .score: "Score"
+        case .averageRating: "Average rating"
+        case .userExperience: "User experience"
         case .greenFlags: "Amount of green flags"
         case .redFlags: "Amount of red flags"
         case .entryCount: "Amount of entries"
@@ -836,7 +964,8 @@ private enum HomeSortOption: String, CaseIterable, Identifiable {
         switch self {
         case .latestJournalEntry: "Latest"
         case .initialJournalEntry: "Initial"
-        case .score: "Score"
+        case .averageRating: "Avg rating"
+        case .userExperience: "Experience"
         case .greenFlags: "Green flags"
         case .redFlags: "Red flags"
         case .entryCount: "Entries"
@@ -854,9 +983,13 @@ private enum HomeSortOption: String, CaseIterable, Identifiable {
                 if lhs.initialJournalDate != rhs.initialJournalDate {
                     return lhs.initialJournalDate > rhs.initialJournalDate
                 }
-            case .score:
-                if lhs.score != rhs.score {
-                    return lhs.score > rhs.score
+            case .averageRating:
+                if lhs.averageCategoryRating != rhs.averageCategoryRating {
+                    return lhs.averageCategoryRating > rhs.averageCategoryRating
+                }
+            case .userExperience:
+                if lhs.userExperienceAverage != rhs.userExperienceAverage {
+                    return lhs.userExperienceAverage > rhs.userExperienceAverage
                 }
             case .greenFlags:
                 if lhs.greenFlagCount != rhs.greenFlagCount {
@@ -961,6 +1094,216 @@ private struct KeywordFilterSection: View {
             }
         }
     }
+}
+
+private struct UserPreferenceProfile {
+    let attractiveRating: Int
+    let heightCentimeters: Int
+    let goodBodyRating: Int
+    let goodFaceRating: Int
+    let goodKisserRating: Int
+    let goodHeadRating: Int
+    let lengthCentimeters: Int
+
+    static let defaults = UserPreferenceProfile(
+        attractiveRating: 7,
+        heightCentimeters: 175,
+        goodBodyRating: 7,
+        goodFaceRating: 7,
+        goodKisserRating: 7,
+        goodHeadRating: 7,
+        lengthCentimeters: 15
+    )
+}
+
+private struct PersonAttributeAverages {
+    let attractive: Double?
+    let heightScore: Double?
+    let goodBody: Double?
+    let goodFace: Double?
+    let goodKisser: Double?
+    let goodHead: Double?
+    let lengthScore: Double?
+
+    var allScores: [Double] {
+        [attractive, heightScore, goodBody, goodFace, goodKisser, goodHead, lengthScore].compactMap { $0 }
+    }
+
+    var averageScore: Double {
+        guard !allScores.isEmpty else { return 0 }
+        return allScores.reduce(0, +) / Double(allScores.count)
+    }
+
+    func preferenceMSE(using preferences: UserPreferenceProfile) -> Double? {
+        var squaredDifferences: [Double] = []
+
+        if let attractive {
+            squaredDifferences.append(pow(attractive - Double(preferences.attractiveRating), 2))
+        }
+        if let heightScore {
+            squaredDifferences.append(pow(heightScore - normalizedHeightScore(for: preferences.heightCentimeters), 2))
+        }
+        if let goodBody {
+            squaredDifferences.append(pow(goodBody - Double(preferences.goodBodyRating), 2))
+        }
+        if let goodFace {
+            squaredDifferences.append(pow(goodFace - Double(preferences.goodFaceRating), 2))
+        }
+        if let goodKisser {
+            squaredDifferences.append(pow(goodKisser - Double(preferences.goodKisserRating), 2))
+        }
+        if let goodHead {
+            squaredDifferences.append(pow(goodHead - Double(preferences.goodHeadRating), 2))
+        }
+        if let lengthScore {
+            squaredDifferences.append(pow(lengthScore - normalizedLengthScore(for: preferences.lengthCentimeters), 2))
+        }
+
+        guard !squaredDifferences.isEmpty else { return nil }
+        return squaredDifferences.reduce(0, +) / Double(squaredDifferences.count)
+    }
+}
+
+private enum LeaderboardMetric: String, CaseIterable, Identifiable {
+    case preferenceMatch
+    case averageRating
+    case userExperience
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .preferenceMatch: "Preference Match"
+        case .averageRating: "Average Rating"
+        case .userExperience: "User Experience"
+        }
+    }
+}
+
+private struct LeaderboardView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let threads: [PersonThread]
+    let preferenceProfile: UserPreferenceProfile
+
+    @State private var metric: LeaderboardMetric = .preferenceMatch
+
+    private var rankedThreads: [PersonThread] {
+        threads.sorted { lhs, rhs in
+            switch metric {
+            case .preferenceMatch:
+                return (lhs.preferenceMSE(using: preferenceProfile) ?? .greatestFiniteMagnitude)
+                    < (rhs.preferenceMSE(using: preferenceProfile) ?? .greatestFiniteMagnitude)
+            case .averageRating:
+                return lhs.averageCategoryRating > rhs.averageCategoryRating
+            case .userExperience:
+                return lhs.userExperienceAverage > rhs.userExperienceAverage
+            }
+        }
+    }
+
+    var body: some View {
+        ScreenContainer(
+            title: "Leaderboard",
+            subtitle: "Compare your archive by preference fit, average category rating, or overall experience."
+        ) {
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
+                Picker("Leaderboard metric", selection: $metric) {
+                    ForEach(LeaderboardMetric.allCases) { metric in
+                        Text(metric.title).tag(metric)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                ScrollView {
+                    LazyVStack(spacing: AppTheme.Spacing.medium) {
+                        ForEach(Array(rankedThreads.enumerated()), id: \.element.id) { index, thread in
+                            LeaderboardRow(
+                                rank: index + 1,
+                                thread: thread,
+                                preferenceProfile: preferenceProfile
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle("Leaderboard")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Done") {
+                    dismiss()
+                }
+            }
+        }
+    }
+}
+
+private struct LeaderboardRow: View {
+    let rank: Int
+    let thread: PersonThread
+    let preferenceProfile: UserPreferenceProfile
+
+    private var preferenceMSEText: String {
+        guard let mse = thread.preferenceMSE(using: preferenceProfile) else { return "No preference data yet" }
+        return String(format: "MSE %.2f", mse)
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: AppTheme.Spacing.medium) {
+            Text("\(rank)")
+                .font(.system(size: 22, weight: .bold, design: .rounded))
+                .foregroundStyle(AppTheme.Colors.accent)
+                .frame(width: 28)
+
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+                Text(thread.personName)
+                    .font(AppTheme.Typography.cardTitle)
+                    .foregroundStyle(AppTheme.Colors.primaryText)
+
+                HStack(spacing: 10) {
+                    leaderboardMetricPill(title: "Avg", value: thread.averageCategoryRating.formatted(.number.precision(.fractionLength(1))))
+                    leaderboardMetricPill(title: "Experience", value: thread.userExperienceAverage.formatted(.number.precision(.fractionLength(1))))
+                }
+
+                Text(preferenceMSEText)
+                    .font(AppTheme.Typography.caption)
+                    .foregroundStyle(AppTheme.Colors.secondaryText)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassCard()
+    }
+
+    private func leaderboardMetricPill(title: String, value: String) -> some View {
+        HStack(spacing: 6) {
+            Text(title)
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .foregroundStyle(AppTheme.Colors.secondaryText)
+            Text(value)
+                .font(AppTheme.Typography.caption.weight(.semibold))
+                .foregroundStyle(AppTheme.Colors.primaryText)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(
+            Capsule(style: .continuous)
+                .fill(AppTheme.Colors.accentSoft.opacity(0.72))
+        )
+    }
+}
+
+private func normalizedHeightScore(for centimeters: Int) -> Double {
+    let clamped = min(max(centimeters, 120), 230)
+    return ((Double(clamped - 120) / 110.0) * 9.0) + 1.0
+}
+
+private func normalizedLengthScore(for centimeters: Int) -> Double {
+    let clamped = min(max(centimeters, 0), 30)
+    return ((Double(clamped) / 30.0) * 9.0) + 1.0
 }
 
 private struct ActiveFilterChips: View {
