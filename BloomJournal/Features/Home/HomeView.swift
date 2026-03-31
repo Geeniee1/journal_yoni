@@ -5,27 +5,27 @@ struct HomeView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \JournalEntry.updatedAt, order: .reverse) private var entries: [JournalEntry]
     @State private var searchText = ""
+    @State private var isShowingFilters = false
+    @State private var sortOption: HomeSortOption = .latestJournalEntry
+    @State private var selectedConnectionTypes: Set<ConnectionType> = []
+    @State private var requiresWouldMeetAgain = false
+    @State private var requiresGoodKisser = false
+    @State private var requiresGoodHead = false
+    @State private var requiresLongDuration = false
+    @State private var requiresMadeMeCum = false
+    @State private var requiresGreenFlags = false
+    @State private var requiresRedFlags = false
+    @State private var requiresNotes = false
+    @State private var selectedPositionIDs: Set<String> = []
     @State private var selectedThread: PersonThreadSelection?
     @State private var entryPendingDeletion: JournalEntry?
 
-    private var filteredThreads: [PersonThread] {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let threads = personThreads
-        guard !query.isEmpty else { return threads }
-
-        return threads.filter { thread in
-            thread.entries.contains { entry in
-                entry.personNameOrAlias.localizedCaseInsensitiveContains(query)
-                    || entry.notes.localizedCaseInsensitiveContains(query)
-                    || entry.connectionType.title.localizedCaseInsensitiveContains(query)
-                    || entry.tags.contains(where: { $0.localizedCaseInsensitiveContains(query) })
-                    || entry.greenFlags.contains(where: { $0.localizedCaseInsensitiveContains(query) })
-                    || entry.redFlags.contains(where: { $0.localizedCaseInsensitiveContains(query) })
-                    || entry.positionIDs.contains(where: { id in
-                        (PositionCatalog.all.first(where: { $0.id == id })?.name.localizedCaseInsensitiveContains(query) ?? false)
-                    })
-            }
-        }
+    private var visibleThreads: [PersonThread] {
+        sortOption.sorted(
+            threads: personThreads
+                .filter(threadMatchesFilters)
+                .filter(threadMatchesSearch)
+        )
     }
 
     private var personThreads: [PersonThread] {
@@ -42,7 +42,25 @@ struct HomeView: View {
                 entries: sortedEntries
             )
         }
-        .sorted(by: { $0.latestEntry.updatedAt > $1.latestEntry.updatedAt })
+    }
+
+    private var activeFilterLabels: [String] {
+        var labels = selectedConnectionTypes.sorted(by: { $0.title < $1.title }).map(\.title)
+
+        if requiresWouldMeetAgain { labels.append("Would meet again") }
+        if requiresGoodKisser { labels.append("Good kisser") }
+        if requiresGoodHead { labels.append("Good head") }
+        if requiresLongDuration { labels.append("Long") }
+        if requiresMadeMeCum { labels.append("Made me cum") }
+        if requiresGreenFlags { labels.append("Green flags") }
+        if requiresRedFlags { labels.append("Red flags") }
+        if requiresNotes { labels.append("Notes") }
+
+        labels.append(contentsOf: selectedPositionIDs.compactMap { id in
+            PositionCatalog.all.first(where: { $0.id == id })?.name
+        }.sorted())
+
+        return labels
     }
 
     var body: some View {
@@ -53,6 +71,7 @@ struct HomeView: View {
                 eyebrow: "Home"
             ) {
                 searchField
+                controlsCard
 
                 if entries.isEmpty {
                     EmptyStateCard(
@@ -60,15 +79,18 @@ struct HomeView: View {
                         message: "Your first memory can live here. Add a connection and Yoni Journal will shape the archive around it.",
                         systemImage: "sparkles"
                     )
-                } else if filteredThreads.isEmpty {
-                    EmptyStateCard(
-                        title: "No matching entries",
-                        message: "Try searching by name, tag, flag, or a word from your notes.",
-                        systemImage: "magnifyingglass"
+                } else if visibleThreads.isEmpty {
+                    ArchiveEmptyState(
+                        hasFilters: !activeFilterLabels.isEmpty,
+                        activeFilters: activeFilterLabels,
+                        onClearFilters: clearAllFilters
                     )
                 } else {
                     VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
-                        SectionHeader("Connections", subtitle: "\(filteredThreads.count) result\(filteredThreads.count == 1 ? "" : "s")")
+                        SectionHeader(
+                            "Connections",
+                            subtitle: "\(visibleThreads.count) result\(visibleThreads.count == 1 ? "" : "s") • sorted by \(sortOption.title.lowercased())"
+                        )
                         listContent
                     }
                 }
@@ -115,7 +137,7 @@ struct HomeView: View {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(AppTheme.Colors.secondaryText)
 
-            TextField("Search entries, names, tags, or notes", text: $searchText)
+            TextField("Search people, notes, tags, or positions", text: $searchText)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
 
@@ -141,9 +163,138 @@ struct HomeView: View {
         }
     }
 
+    private var controlsCard: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
+            HStack(spacing: AppTheme.Spacing.small) {
+                Button {
+                    isShowingFilters.toggle()
+                } label: {
+                    Label(
+                        activeFilterLabels.isEmpty ? "Filters" : "Filters (\(activeFilterLabels.count))",
+                        systemImage: "line.3.horizontal.decrease.circle"
+                    )
+                }
+                .buttonStyle(CapsuleToggleButtonStyle(isSelected: isShowingFilters || !activeFilterLabels.isEmpty))
+
+                Menu {
+                    Picker("Sort", selection: $sortOption) {
+                        ForEach(HomeSortOption.allCases) { option in
+                            Text(option.title).tag(option)
+                        }
+                    }
+                } label: {
+                    Label(sortOption.title, systemImage: "arrow.up.arrow.down.circle")
+                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        .foregroundStyle(AppTheme.Colors.primaryText)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(Capsule(style: .continuous).fill(Color.white.opacity(0.48)))
+                        .overlay {
+                            Capsule(style: .continuous)
+                                .stroke(Color.white.opacity(0.55), lineWidth: 1)
+                        }
+                }
+
+                Spacer()
+
+                if !activeFilterLabels.isEmpty {
+                    Button("Clear") {
+                        clearAllFilters()
+                    }
+                    .font(AppTheme.Typography.caption.weight(.semibold))
+                    .foregroundStyle(AppTheme.Colors.warning)
+                }
+            }
+
+            if !activeFilterLabels.isEmpty {
+                ActiveFilterChips(labels: activeFilterLabels)
+            }
+
+            if isShowingFilters {
+                filterPanel
+            }
+        }
+        .glassCard()
+    }
+
+    private var filterPanel: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
+            SectionHeader(
+                "Filter Archive",
+                subtitle: activeFilterLabels.isEmpty
+                    ? "Stack as many filters as you want."
+                    : "\(activeFilterLabels.count) active"
+            )
+
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 128), spacing: AppTheme.Spacing.small)],
+                spacing: AppTheme.Spacing.small
+            ) {
+                ForEach(ConnectionType.editorCases) { type in
+                    FilterChipButton(title: type.title, isSelected: selectedConnectionTypes.contains(type)) {
+                        toggleConnectionType(type)
+                    }
+                }
+
+                FilterChipButton(title: "Would meet again", isSelected: requiresWouldMeetAgain) {
+                    requiresWouldMeetAgain.toggle()
+                }
+                FilterChipButton(title: "Good kisser", isSelected: requiresGoodKisser) {
+                    requiresGoodKisser.toggle()
+                }
+                FilterChipButton(title: "Good head", isSelected: requiresGoodHead) {
+                    requiresGoodHead.toggle()
+                }
+                FilterChipButton(title: "Long", isSelected: requiresLongDuration) {
+                    requiresLongDuration.toggle()
+                }
+                FilterChipButton(title: "Made me cum", isSelected: requiresMadeMeCum) {
+                    requiresMadeMeCum.toggle()
+                }
+                FilterChipButton(title: "Green flags", isSelected: requiresGreenFlags) {
+                    requiresGreenFlags.toggle()
+                }
+                FilterChipButton(title: "Red flags", isSelected: requiresRedFlags) {
+                    requiresRedFlags.toggle()
+                }
+                FilterChipButton(title: "Notes", isSelected: requiresNotes) {
+                    requiresNotes.toggle()
+                }
+            }
+
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+                SectionHeader(
+                    "Positions",
+                    subtitle: selectedPositionIDs.isEmpty ? "Filter by any saved position." : "\(selectedPositionIDs.count) selected"
+                )
+
+                ScrollView(.vertical, showsIndicators: true) {
+                    LazyVGrid(
+                        columns: Array(repeating: GridItem(.flexible(), spacing: AppTheme.Spacing.small), count: 4),
+                        spacing: AppTheme.Spacing.small
+                    ) {
+                        ForEach(PositionCatalog.all) { position in
+                            Button {
+                                togglePositionFilter(position.id)
+                            } label: {
+                                FilterPositionTile(
+                                    position: position,
+                                    isSelected: selectedPositionIDs.contains(position.id)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.trailing, 4)
+                }
+                .frame(maxHeight: 220)
+            }
+        }
+    }
+
     private var listContent: some View {
         LazyVStack(spacing: AppTheme.Spacing.medium) {
-            ForEach(filteredThreads) { thread in
+            ForEach(visibleThreads) { thread in
                 ZStack(alignment: .topLeading) {
                     Button {
                         selectedThread = PersonThreadSelection(personName: thread.personName)
@@ -175,6 +326,108 @@ struct HomeView: View {
     private func delete(_ entry: JournalEntry) {
         modelContext.delete(entry)
         try? modelContext.save()
+    }
+
+    private func threadMatchesSearch(_ thread: PersonThread) -> Bool {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return true }
+
+        return thread.entries.contains { entry in
+            entry.personNameOrAlias.localizedCaseInsensitiveContains(query)
+                || entry.notes.localizedCaseInsensitiveContains(query)
+                || entry.connectionType.title.localizedCaseInsensitiveContains(query)
+                || entry.tags.contains(where: { $0.localizedCaseInsensitiveContains(query) })
+                || entry.greenFlags.contains(where: { $0.localizedCaseInsensitiveContains(query) })
+                || entry.redFlags.contains(where: { $0.localizedCaseInsensitiveContains(query) })
+                || entry.positionIDs.contains(where: { id in
+                    (PositionCatalog.all.first(where: { $0.id == id })?.name.localizedCaseInsensitiveContains(query) ?? false)
+                })
+        }
+    }
+
+    private func threadMatchesFilters(_ thread: PersonThread) -> Bool {
+        let hasActiveFilters =
+            !selectedConnectionTypes.isEmpty
+            || requiresWouldMeetAgain
+            || requiresGoodKisser
+            || requiresGoodHead
+            || requiresLongDuration
+            || requiresMadeMeCum
+            || requiresGreenFlags
+            || requiresRedFlags
+            || requiresNotes
+            || !selectedPositionIDs.isEmpty
+
+        guard hasActiveFilters else { return true }
+        return thread.entries.contains(where: entryMatchesFilters)
+    }
+
+    private func entryMatchesFilters(_ entry: JournalEntry) -> Bool {
+        if !selectedConnectionTypes.isEmpty, !selectedConnectionTypes.contains(entry.connectionType) {
+            return false
+        }
+        if requiresWouldMeetAgain, !entry.wouldMeetAgain {
+            return false
+        }
+        if requiresGoodKisser, !entry.goodKisser {
+            return false
+        }
+        if requiresGoodHead, !entry.goodHead {
+            return false
+        }
+        if requiresLongDuration, !entry.longDuration {
+            return false
+        }
+        if requiresMadeMeCum, !entry.madeMeCum {
+            return false
+        }
+        if requiresGreenFlags, entry.greenFlags.isEmpty {
+            return false
+        }
+        if requiresRedFlags, entry.redFlags.isEmpty {
+            return false
+        }
+        if requiresNotes, !hasMeaningfulNotes(entry) {
+            return false
+        }
+        if !selectedPositionIDs.isEmpty, selectedPositionIDs.intersection(Set(entry.positionIDs)).isEmpty {
+            return false
+        }
+        return true
+    }
+
+    private func hasMeaningfulNotes(_ entry: JournalEntry) -> Bool {
+        let trimmed = entry.notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !trimmed.isEmpty && trimmed != "No notes yet."
+    }
+
+    private func clearAllFilters() {
+        selectedConnectionTypes.removeAll()
+        requiresWouldMeetAgain = false
+        requiresGoodKisser = false
+        requiresGoodHead = false
+        requiresLongDuration = false
+        requiresMadeMeCum = false
+        requiresGreenFlags = false
+        requiresRedFlags = false
+        requiresNotes = false
+        selectedPositionIDs.removeAll()
+    }
+
+    private func toggleConnectionType(_ type: ConnectionType) {
+        if selectedConnectionTypes.contains(type) {
+            selectedConnectionTypes.remove(type)
+        } else {
+            selectedConnectionTypes.insert(type)
+        }
+    }
+
+    private func togglePositionFilter(_ id: String) {
+        if selectedPositionIDs.contains(id) {
+            selectedPositionIDs.remove(id)
+        } else {
+            selectedPositionIDs.insert(id)
+        }
     }
 
     private func normalizedPersonName(for value: String) -> String {
@@ -223,10 +476,6 @@ private struct EntryCard: View {
                     .padding(.vertical, 8)
                     .background(Capsule().fill(AppTheme.Colors.accentSoft.opacity(0.9)))
 
-                Label("\(thread.latestEntry.rating)/10", systemImage: "sparkles")
-                    .font(AppTheme.Typography.caption)
-                    .foregroundStyle(AppTheme.Colors.gold)
-
                 Text("\(thread.entries.count) entr\(thread.entries.count == 1 ? "y" : "ies")")
                     .font(AppTheme.Typography.caption)
                     .foregroundStyle(AppTheme.Colors.secondaryText)
@@ -250,11 +499,189 @@ private struct PersonThread: Identifiable {
     let personName: String
     let latestEntry: JournalEntry
     let entries: [JournalEntry]
+
+    var latestJournalDate: Date {
+        latestEntry.updatedAt
+    }
+
+    var initialJournalDate: Date {
+        entries.map(\.entryDate).min() ?? latestEntry.entryDate
+    }
+
+    var score: Int {
+        latestEntry.rating
+    }
+
+    var greenFlagCount: Int {
+        entries.reduce(0) { $0 + $1.greenFlags.count }
+    }
+
+    var redFlagCount: Int {
+        entries.reduce(0) { $0 + $1.redFlags.count }
+    }
+
+    var entryCount: Int {
+        entries.count
+    }
 }
 
 private struct PersonThreadSelection: Identifiable {
     let personName: String
     var id: String { personName.lowercased() }
+}
+
+private enum HomeSortOption: String, CaseIterable, Identifiable {
+    case latestJournalEntry
+    case initialJournalEntry
+    case score
+    case greenFlags
+    case redFlags
+    case entryCount
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .latestJournalEntry: "Latest journal entry"
+        case .initialJournalEntry: "Initial journal entry"
+        case .score: "Score"
+        case .greenFlags: "Amount of green flags"
+        case .redFlags: "Amount of red flags"
+        case .entryCount: "Amount of entries"
+        }
+    }
+
+    func sorted(threads: [PersonThread]) -> [PersonThread] {
+        threads.sorted { lhs, rhs in
+            switch self {
+            case .latestJournalEntry:
+                if lhs.latestJournalDate != rhs.latestJournalDate {
+                    return lhs.latestJournalDate > rhs.latestJournalDate
+                }
+            case .initialJournalEntry:
+                if lhs.initialJournalDate != rhs.initialJournalDate {
+                    return lhs.initialJournalDate > rhs.initialJournalDate
+                }
+            case .score:
+                if lhs.score != rhs.score {
+                    return lhs.score > rhs.score
+                }
+            case .greenFlags:
+                if lhs.greenFlagCount != rhs.greenFlagCount {
+                    return lhs.greenFlagCount > rhs.greenFlagCount
+                }
+            case .redFlags:
+                if lhs.redFlagCount != rhs.redFlagCount {
+                    return lhs.redFlagCount > rhs.redFlagCount
+                }
+            case .entryCount:
+                if lhs.entryCount != rhs.entryCount {
+                    return lhs.entryCount > rhs.entryCount
+                }
+            }
+
+            return lhs.latestJournalDate > rhs.latestJournalDate
+        }
+    }
+}
+
+private struct FilterChipButton: View {
+    let title: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(CapsuleToggleButtonStyle(isSelected: isSelected))
+    }
+}
+
+private struct FilterPositionTile: View {
+    let position: PositionDefinition
+    let isSelected: Bool
+
+    var body: some View {
+        VStack(spacing: AppTheme.Spacing.xSmall) {
+            Image(systemName: position.symbolName)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(isSelected ? AppTheme.Colors.accent : AppTheme.Colors.secondaryText)
+                .frame(width: 34, height: 34)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(isSelected ? AppTheme.Colors.accentSoft.opacity(0.95) : Color.white.opacity(0.14))
+                )
+
+            Text(position.name)
+                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                .foregroundStyle(isSelected ? AppTheme.Colors.primaryText : AppTheme.Colors.secondaryText)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+        }
+        .frame(maxWidth: .infinity, minHeight: 82)
+        .padding(.horizontal, 4)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous)
+                .fill(isSelected ? AppTheme.Colors.accentSoft.opacity(0.52) : Color.white.opacity(0.08))
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous)
+                .stroke(isSelected ? AppTheme.Colors.accent.opacity(0.8) : Color.white.opacity(0.18), lineWidth: 1)
+        }
+        .saturation(isSelected ? 1 : 0)
+    }
+}
+
+private struct ActiveFilterChips: View {
+    let labels: [String]
+
+    var body: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 110), spacing: AppTheme.Spacing.xSmall)], spacing: AppTheme.Spacing.xSmall) {
+            ForEach(labels, id: \.self) { label in
+                Text(label)
+                    .font(AppTheme.Typography.caption.weight(.semibold))
+                    .foregroundStyle(AppTheme.Colors.primaryText)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(AppTheme.Colors.accentSoft.opacity(0.9))
+                    )
+            }
+        }
+    }
+}
+
+private struct ArchiveEmptyState: View {
+    let hasFilters: Bool
+    let activeFilters: [String]
+    let onClearFilters: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
+            EmptyStateCard(
+                title: hasFilters ? "No experience in these categories yet" : "No matching entries",
+                message: hasFilters
+                    ? "The active categories below removed every result. Deselect any filter to broaden the archive again."
+                    : "Try a different name, note, tag, or position.",
+                systemImage: hasFilters ? "line.3.horizontal.decrease.circle" : "magnifyingglass"
+            )
+
+            if hasFilters {
+                VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+                    SectionHeader("Active Filters")
+                    ActiveFilterChips(labels: activeFilters)
+
+                    Button("Clear Filters", action: onClearFilters)
+                        .buttonStyle(PrimaryButtonStyle())
+                }
+            }
+        }
+    }
 }
 
 private struct PersonThreadView: View {
