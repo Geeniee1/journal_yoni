@@ -39,7 +39,6 @@ struct EntryEditorView: View {
     @State private var isSaveButtonCelebrating = false
 
     private let photoStorage = PhotoStorageService()
-    private let presetTags = ["first time", "fun", "emotional", "complicated", "soft", "chemistry"]
 
     init(
         entry: JournalEntry? = nil,
@@ -162,23 +161,6 @@ struct EntryEditorView: View {
             VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
                 Text("Tags")
                     .font(AppTheme.Typography.cardTitle)
-
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: AppTheme.Spacing.xSmall) {
-                        ForEach(presetTags, id: \.self) { tag in
-                            Button {
-                                addTag(tag, to: &tags)
-                            } label: {
-                                Text(tag.capitalized)
-                                    .font(AppTheme.Typography.caption)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 8)
-                                    .background(Capsule().fill(AppTheme.Colors.accentSoft.opacity(0.7)))
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
 
                 TagInputRow(
                     placeholder: "Add a tag",
@@ -563,16 +545,21 @@ private struct EditableTagWrap: View {
             HStack(spacing: AppTheme.Spacing.xSmall) {
                 ForEach(tags, id: \.self) { tag in
                     HStack(spacing: 6) {
-                        Text(tag.capitalized)
+                        Text(tag)
                             .font(AppTheme.Typography.caption)
                             .foregroundStyle(AppTheme.Colors.primaryText)
 
                         Button {
                             onRemove(tag)
                         } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.caption)
-                                .foregroundStyle(AppTheme.Colors.secondaryText)
+                            Image(systemName: "xmark")
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(AppTheme.Colors.secondaryText.opacity(0.85))
+                                .frame(width: 14, height: 14)
+                                .background(
+                                    Circle()
+                                        .fill(Color.white.opacity(0.32))
+                                )
                         }
                         .buttonStyle(.plain)
                     }
