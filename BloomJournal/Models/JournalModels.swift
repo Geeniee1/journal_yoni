@@ -25,15 +25,21 @@ enum EntryBinaryPrompt: String, Codable, CaseIterable, Identifiable {
 enum ConnectionType: String, Codable, CaseIterable, Identifiable {
     case hookup
     case date
+    case sexyTime
     case ongoing
     case other
 
     var id: String { rawValue }
 
+    static var editorCases: [ConnectionType] {
+        [.hookup, .date, .sexyTime]
+    }
+
     var title: String {
         switch self {
         case .hookup: "Hookup"
         case .date: "Date"
+        case .sexyTime: "Sexy Time"
         case .ongoing: "Ongoing"
         case .other: "Other"
         }

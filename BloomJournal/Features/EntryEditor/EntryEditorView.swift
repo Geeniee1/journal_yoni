@@ -7,6 +7,8 @@ struct EntryEditorView: View {
     @Environment(\.modelContext) private var modelContext
 
     let entry: JournalEntry?
+    let prefilledPersonName: String?
+    let dismissAfterSave: Bool
 
     @State private var personNameOrAlias = ""
     @State private var entryDate = Date.now
@@ -36,8 +38,10 @@ struct EntryEditorView: View {
     private let photoStorage = PhotoStorageService()
     private let presetTags = ["first time", "fun", "emotional", "complicated", "soft", "chemistry"]
 
-    init(entry: JournalEntry? = nil) {
+    init(entry: JournalEntry? = nil, prefilledPersonName: String? = nil, dismissAfterSave: Bool = false) {
         self.entry = entry
+        self.prefilledPersonName = prefilledPersonName
+        self.dismissAfterSave = dismissAfterSave
     }
 
     private var isEditing: Bool {
@@ -85,7 +89,7 @@ struct EntryEditorView: View {
             DatePicker("Date", selection: $entryDate, displayedComponents: [.date, .hourAndMinute])
 
             Picker("Type", selection: $connectionType) {
-                ForEach(ConnectionType.allCases) { type in
+                ForEach(ConnectionType.editorCases) { type in
                     Text(type.title).tag(type)
                 }
             }
@@ -215,22 +219,26 @@ struct EntryEditorView: View {
                     : "\(selectedPositionIDs.count) selected"
             )
 
-            LazyVGrid(
-                columns: Array(repeating: GridItem(.flexible(), spacing: AppTheme.Spacing.small), count: 3),
-                spacing: AppTheme.Spacing.small
-            ) {
-                ForEach(PositionCatalog.all) { position in
-                    Button {
-                        togglePosition(position.id)
-                    } label: {
-                        PositionSelectionTile(
-                            position: position,
-                            isSelected: selectedPositionIDs.contains(position.id)
-                        )
+            ScrollView(.vertical, showsIndicators: true) {
+                LazyVGrid(
+                    columns: Array(repeating: GridItem(.flexible(), spacing: AppTheme.Spacing.small), count: 3),
+                    spacing: AppTheme.Spacing.small
+                ) {
+                    ForEach(PositionCatalog.all) { position in
+                        Button {
+                            togglePosition(position.id)
+                        } label: {
+                            PositionSelectionTile(
+                                position: position,
+                                isSelected: selectedPositionIDs.contains(position.id)
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
             }
+            .frame(maxHeight: 320)
+            .padding(.trailing, 4)
         }
         .glassCard()
     }
@@ -271,8 +279,16 @@ struct EntryEditorView: View {
     }
 
     private func loadEntryIfNeeded() {
-        guard !hasLoadedEntry, let entry else { return }
+        guard !hasLoadedEntry else { return }
         hasLoadedEntry = true
+
+        guard let entry else {
+            if personNameOrAlias.isEmpty, let prefilledPersonName {
+                personNameOrAlias = prefilledPersonName
+            }
+            return
+        }
+
         personNameOrAlias = entry.personNameOrAlias
         entryDate = entry.entryDate
         connectionType = entry.connectionType
@@ -362,7 +378,7 @@ struct EntryEditorView: View {
 
         try? modelContext.save()
 
-        if isEditing {
+        if isEditing || dismissAfterSave {
             dismiss()
         } else {
             saveMessage = "Saved locally on this device."

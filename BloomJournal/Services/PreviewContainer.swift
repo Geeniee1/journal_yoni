@@ -34,7 +34,7 @@ enum SampleEntries {
             JournalEntry(
                 entryDate: Calendar.current.date(byAdding: .day, value: -2, to: .now) ?? .now,
                 personNameOrAlias: "Ari",
-                connectionType: .ongoing,
+                connectionType: .sexyTime,
                 rating: 8,
                 notes: "Soft morning after energy. We talked about boundaries and what ease feels like.",
                 tags: ["emotional", "fun"],
@@ -44,6 +44,18 @@ enum SampleEntries {
                 greenFlags: ["communicative", "gentle"],
                 redFlags: ["late reply"],
                 positionIDs: ["position-1", "position-2"]
+            ),
+            JournalEntry(
+                entryDate: Calendar.current.date(byAdding: .day, value: -5, to: .now) ?? .now,
+                personNameOrAlias: "Ari",
+                connectionType: .date,
+                rating: 7,
+                notes: "More playful this time. We lingered longer and the aftercare felt easier.",
+                tags: ["chemistry", "soft"],
+                wouldMeetAgain: true,
+                goodKisser: true,
+                greenFlags: ["warm", "attentive"],
+                positionIDs: ["position-3"]
             ),
             JournalEntry(
                 entryDate: Calendar.current.date(byAdding: .day, value: -9, to: .now) ?? .now,
