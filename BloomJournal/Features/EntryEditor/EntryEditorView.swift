@@ -19,9 +19,20 @@ struct EntryEditorView: View {
     @State private var notes = ""
 
     @State private var wouldMeetAgain = false
+    @State private var attractive = false
+    @State private var attractiveRating = 5
+    @State private var tall = false
+    @State private var heightCentimeters = 170
+    @State private var goodBody = false
+    @State private var goodBodyRating = 5
+    @State private var goodFace = false
+    @State private var goodFaceRating = 5
     @State private var goodKisser = false
+    @State private var goodKisserRating = 5
     @State private var goodHead = false
+    @State private var goodHeadRating = 5
     @State private var longDuration = false
+    @State private var lengthCentimeters = 15
     @State private var madeMeCum = false
 
     @State private var tagInput = ""
@@ -190,17 +201,36 @@ struct EntryEditorView: View {
                     .font(AppTheme.Typography.cardTitle)
                     .foregroundStyle(AppTheme.Colors.primaryText)
 
-                ForEach(EntryBinaryPrompt.allCases) { prompt in
-                    Toggle(isOn: binding(for: prompt)) {
-                        Text(prompt.title)
-                            .font(AppTheme.Typography.body)
-                            .foregroundStyle(AppTheme.Colors.primaryText)
-                    }
-                    .tint(.green)
-                }
+                quickNotesContent
             }
         }
         .glassCard()
+    }
+
+    private var quickNotesContent: some View {
+        Group {
+            QuickToggleRow(title: "Would meet again", isOn: $wouldMeetAgain)
+            QuickToggleRatingRow(title: "Attractive", isOn: $attractive, rating: $attractiveRating)
+            QuickToggleMeasurementRow(
+                title: "Tall",
+                isOn: $tall,
+                value: $heightCentimeters,
+                range: 120...230,
+                unit: "cm"
+            )
+            QuickToggleRatingRow(title: "Good body", isOn: $goodBody, rating: $goodBodyRating)
+            QuickToggleRatingRow(title: "Good face", isOn: $goodFace, rating: $goodFaceRating)
+            QuickToggleRatingRow(title: "Good kisser", isOn: $goodKisser, rating: $goodKisserRating)
+            QuickToggleRatingRow(title: "Good head", isOn: $goodHead, rating: $goodHeadRating)
+            QuickToggleMeasurementRow(
+                title: "Long",
+                isOn: $longDuration,
+                value: $lengthCentimeters,
+                range: 0...30,
+                unit: "cm"
+            )
+            QuickToggleRow(title: "Made me cum", isOn: $madeMeCum)
+        }
     }
 
     private var notesAndFlagsCard: some View {
@@ -309,21 +339,6 @@ struct EntryEditorView: View {
         .glassCard()
     }
 
-    private func binding(for prompt: EntryBinaryPrompt) -> Binding<Bool> {
-        switch prompt {
-        case .wouldMeetAgain:
-            $wouldMeetAgain
-        case .goodKisser:
-            $goodKisser
-        case .goodHead:
-            $goodHead
-        case .longDuration:
-            $longDuration
-        case .madeMeCum:
-            $madeMeCum
-        }
-    }
-
     private func loadEntryIfNeeded() {
         guard !hasLoadedEntry else { return }
         hasLoadedEntry = true
@@ -348,9 +363,20 @@ struct EntryEditorView: View {
         notes = entry.notes == "No notes yet." ? "" : entry.notes
         tags = entry.tags
         wouldMeetAgain = entry.wouldMeetAgain
+        attractive = entry.attractive
+        attractiveRating = entry.attractiveRating
+        tall = entry.tall
+        heightCentimeters = entry.heightCentimeters ?? 170
+        goodBody = entry.goodBody
+        goodBodyRating = entry.goodBodyRating
+        goodFace = entry.goodFace
+        goodFaceRating = entry.goodFaceRating
         goodKisser = entry.goodKisser
+        goodKisserRating = entry.goodKisserRating
         goodHead = entry.goodHead
+        goodHeadRating = entry.goodHeadRating
         longDuration = entry.longDuration
+        lengthCentimeters = entry.lengthCentimeters ?? 15
         madeMeCum = entry.madeMeCum
         greenFlags = entry.greenFlags
         redFlags = entry.redFlags
@@ -391,9 +417,20 @@ struct EntryEditorView: View {
                 notes: normalizedNotes,
                 tags: tags,
                 wouldMeetAgain: wouldMeetAgain,
+                attractive: attractive,
+                attractiveRating: attractiveRating,
+                tall: tall,
+                heightCentimeters: tall ? heightCentimeters : nil,
+                goodBody: goodBody,
+                goodBodyRating: goodBodyRating,
+                goodFace: goodFace,
+                goodFaceRating: goodFaceRating,
                 goodKisser: goodKisser,
+                goodKisserRating: goodKisserRating,
                 goodHead: goodHead,
+                goodHeadRating: goodHeadRating,
                 longDuration: longDuration,
+                lengthCentimeters: longDuration ? lengthCentimeters : nil,
                 madeMeCum: madeMeCum,
                 greenFlags: greenFlags,
                 redFlags: redFlags,
@@ -411,9 +448,20 @@ struct EntryEditorView: View {
         targetEntry.notes = normalizedNotes
         targetEntry.tags = tags
         targetEntry.wouldMeetAgain = wouldMeetAgain
+        targetEntry.attractive = attractive
+        targetEntry.attractiveRating = attractiveRating
+        targetEntry.tall = tall
+        targetEntry.heightCentimeters = tall ? heightCentimeters : nil
+        targetEntry.goodBody = goodBody
+        targetEntry.goodBodyRating = goodBodyRating
+        targetEntry.goodFace = goodFace
+        targetEntry.goodFaceRating = goodFaceRating
         targetEntry.goodKisser = goodKisser
+        targetEntry.goodKisserRating = goodKisserRating
         targetEntry.goodHead = goodHead
+        targetEntry.goodHeadRating = goodHeadRating
         targetEntry.longDuration = longDuration
+        targetEntry.lengthCentimeters = longDuration ? lengthCentimeters : nil
         targetEntry.madeMeCum = madeMeCum
         targetEntry.greenFlags = greenFlags
         targetEntry.redFlags = redFlags
@@ -457,9 +505,20 @@ struct EntryEditorView: View {
         tagInput = ""
         tags = []
         wouldMeetAgain = false
+        attractive = false
+        attractiveRating = 5
+        tall = false
+        heightCentimeters = 170
+        goodBody = false
+        goodBodyRating = 5
+        goodFace = false
+        goodFaceRating = 5
         goodKisser = false
+        goodKisserRating = 5
         goodHead = false
+        goodHeadRating = 5
         longDuration = false
+        lengthCentimeters = 15
         madeMeCum = false
         greenFlagInput = ""
         greenFlags = []
@@ -566,6 +625,99 @@ private struct EditableTagWrap: View {
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                     .background(Capsule().fill(AppTheme.Colors.accentSoft.opacity(0.84)))
+                }
+            }
+        }
+    }
+}
+
+private struct QuickToggleRow: View {
+    let title: String
+    @Binding var isOn: Bool
+
+    var body: some View {
+        Toggle(isOn: $isOn) {
+            Text(title)
+                .font(AppTheme.Typography.body)
+                .foregroundStyle(AppTheme.Colors.primaryText)
+        }
+        .tint(.green)
+    }
+}
+
+private struct QuickToggleRatingRow: View {
+    let title: String
+    @Binding var isOn: Bool
+    @Binding var rating: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+            QuickToggleRow(title: title, isOn: $isOn)
+
+            if isOn {
+                QuickScaleSelector(value: $rating)
+                    .padding(.leading, 4)
+            }
+        }
+    }
+}
+
+private struct QuickToggleMeasurementRow: View {
+    let title: String
+    @Binding var isOn: Bool
+    @Binding var value: Int
+    let range: ClosedRange<Int>
+    let unit: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+            QuickToggleRow(title: title, isOn: $isOn)
+
+            if isOn {
+                HStack(spacing: AppTheme.Spacing.small) {
+                    Text("\(value) \(unit)")
+                        .font(AppTheme.Typography.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.Colors.primaryText)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(
+                            Capsule(style: .continuous)
+                                .fill(AppTheme.Colors.accentSoft.opacity(0.72))
+                        )
+
+                    Stepper("", value: $value, in: range)
+                        .labelsHidden()
+                }
+                .padding(.leading, 4)
+            }
+        }
+    }
+}
+
+private struct QuickScaleSelector: View {
+    @Binding var value: Int
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(1...10, id: \.self) { level in
+                    Button {
+                        value = level
+                    } label: {
+                        Text("\(level)")
+                            .font(.system(.caption, design: .rounded).weight(.bold))
+                            .foregroundStyle(value == level ? Color.white : AppTheme.Colors.primaryText)
+                            .frame(width: 30, height: 30)
+                            .background(
+                                Circle()
+                                    .fill(value == level ? AppTheme.Colors.accent : Color.white.opacity(0.46))
+                            )
+                            .overlay {
+                                Circle()
+                                    .stroke(value == level ? AppTheme.Colors.accent : Color.white.opacity(0.32), lineWidth: 1)
+                            }
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }

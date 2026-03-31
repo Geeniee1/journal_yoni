@@ -17,6 +17,9 @@ struct HomeView: View {
     @State private var requiresRedFlags = false
     @State private var requiresNotes = false
     @State private var selectedPositionIDs: Set<String> = []
+    @State private var selectedTagKeywords: Set<String> = []
+    @State private var selectedGreenFlagKeywords: Set<String> = []
+    @State private var selectedRedFlagKeywords: Set<String> = []
     @State private var selectedThread: PersonThreadSelection?
     @State private var entryPendingDeletion: JournalEntry?
     @State private var isSelectingThreads = false
@@ -63,7 +66,26 @@ struct HomeView: View {
             PositionCatalog.all.first(where: { $0.id == id })?.name
         }.sorted())
 
+        labels.append(contentsOf: selectedTagKeywords.sorted().map { "Tag: \($0)" })
+        labels.append(contentsOf: selectedGreenFlagKeywords.sorted().map { "Green: \($0)" })
+        labels.append(contentsOf: selectedRedFlagKeywords.sorted().map { "Red: \($0)" })
+
         return labels
+    }
+
+    private var availableTagKeywords: [String] {
+        Array(Set(entries.flatMap(\.tags)))
+            .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+    }
+
+    private var availableGreenFlagKeywords: [String] {
+        Array(Set(entries.flatMap(\.greenFlags)))
+            .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+    }
+
+    private var availableRedFlagKeywords: [String] {
+        Array(Set(entries.flatMap(\.redFlags)))
+            .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
     }
 
     var body: some View {
@@ -190,6 +212,7 @@ struct HomeView: View {
                     )
                 }
                 .buttonStyle(CapsuleToggleButtonStyle(isSelected: isShowingFilters || !activeFilterLabels.isEmpty))
+                .fixedSize(horizontal: true, vertical: false)
 
                 Menu {
                     Picker("Sort", selection: $sortOption) {
@@ -220,7 +243,9 @@ struct HomeView: View {
                     }
                 }
                 .frame(maxWidth: .infinity)
+            }
 
+            HStack(spacing: AppTheme.Spacing.medium) {
                 Spacer()
 
                 if !activeFilterLabels.isEmpty {
@@ -241,7 +266,11 @@ struct HomeView: View {
             }
 
             if !activeFilterLabels.isEmpty {
-                ActiveFilterChips(labels: activeFilterLabels)
+                VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+                    ActiveFilterChips(labels: activeFilterLabels)
+                }
+                .padding(.top, 2)
+                .padding(.bottom, AppTheme.Spacing.small)
             }
 
             if isShowingFilters {
@@ -304,69 +333,121 @@ struct HomeView: View {
                     : "\(activeFilterLabels.count) active"
             )
 
-            LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: 128), spacing: AppTheme.Spacing.small)],
-                spacing: AppTheme.Spacing.small
-            ) {
-                ForEach(ConnectionType.editorCases) { type in
-                    FilterChipButton(title: type.title, isSelected: selectedConnectionTypes.contains(type)) {
-                        toggleConnectionType(type)
-                    }
-                }
+            primaryFilterGrid
+            positionsFilterSection
+            tagKeywordFilterSection
+            greenFlagKeywordFilterSection
+            redFlagKeywordFilterSection
+        }
+    }
 
-                FilterChipButton(title: "Would meet again", isSelected: requiresWouldMeetAgain) {
-                    requiresWouldMeetAgain.toggle()
-                }
-                FilterChipButton(title: "Good kisser", isSelected: requiresGoodKisser) {
-                    requiresGoodKisser.toggle()
-                }
-                FilterChipButton(title: "Good head", isSelected: requiresGoodHead) {
-                    requiresGoodHead.toggle()
-                }
-                FilterChipButton(title: "Long", isSelected: requiresLongDuration) {
-                    requiresLongDuration.toggle()
-                }
-                FilterChipButton(title: "Made me cum", isSelected: requiresMadeMeCum) {
-                    requiresMadeMeCum.toggle()
-                }
-                FilterChipButton(title: "Green flags", isSelected: requiresGreenFlags) {
-                    requiresGreenFlags.toggle()
-                }
-                FilterChipButton(title: "Red flags", isSelected: requiresRedFlags) {
-                    requiresRedFlags.toggle()
-                }
-                FilterChipButton(title: "Notes", isSelected: requiresNotes) {
-                    requiresNotes.toggle()
+    private var primaryFilterGrid: some View {
+        LazyVGrid(
+            columns: [GridItem(.adaptive(minimum: 128), spacing: AppTheme.Spacing.small)],
+            spacing: AppTheme.Spacing.small
+        ) {
+            ForEach(ConnectionType.editorCases) { type in
+                FilterChipButton(title: type.title, isSelected: selectedConnectionTypes.contains(type)) {
+                    toggleConnectionType(type)
                 }
             }
 
-            VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
-                SectionHeader(
-                    "Positions",
-                    subtitle: selectedPositionIDs.isEmpty ? "Filter by any saved position." : "\(selectedPositionIDs.count) selected"
-                )
+            FilterChipButton(title: "Would meet again", isSelected: requiresWouldMeetAgain) {
+                requiresWouldMeetAgain.toggle()
+            }
+            FilterChipButton(title: "Good kisser", isSelected: requiresGoodKisser) {
+                requiresGoodKisser.toggle()
+            }
+            FilterChipButton(title: "Good head", isSelected: requiresGoodHead) {
+                requiresGoodHead.toggle()
+            }
+            FilterChipButton(title: "Long", isSelected: requiresLongDuration) {
+                requiresLongDuration.toggle()
+            }
+            FilterChipButton(title: "Made me cum", isSelected: requiresMadeMeCum) {
+                requiresMadeMeCum.toggle()
+            }
+            FilterChipButton(title: "Green flags", isSelected: requiresGreenFlags) {
+                requiresGreenFlags.toggle()
+            }
+            FilterChipButton(title: "Red flags", isSelected: requiresRedFlags) {
+                requiresRedFlags.toggle()
+            }
+            FilterChipButton(title: "Notes", isSelected: requiresNotes) {
+                requiresNotes.toggle()
+            }
+        }
+    }
 
-                ScrollView(.vertical, showsIndicators: true) {
-                    LazyVGrid(
-                        columns: Array(repeating: GridItem(.flexible(), spacing: AppTheme.Spacing.small), count: 4),
-                        spacing: AppTheme.Spacing.small
-                    ) {
-                        ForEach(PositionCatalog.all) { position in
-                            Button {
-                                togglePositionFilter(position.id)
-                            } label: {
-                                FilterPositionTile(
-                                    position: position,
-                                    isSelected: selectedPositionIDs.contains(position.id)
-                                )
-                            }
-                            .buttonStyle(.plain)
+    private var positionsFilterSection: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+            SectionHeader(
+                "Positions",
+                subtitle: selectedPositionIDs.isEmpty ? "Filter by any saved position." : "\(selectedPositionIDs.count) selected"
+            )
+
+            ScrollView(.vertical, showsIndicators: true) {
+                LazyVGrid(
+                    columns: Array(repeating: GridItem(.flexible(), spacing: AppTheme.Spacing.small), count: 4),
+                    spacing: AppTheme.Spacing.small
+                ) {
+                    ForEach(PositionCatalog.all) { position in
+                        Button {
+                            togglePositionFilter(position.id)
+                        } label: {
+                            FilterPositionTile(
+                                position: position,
+                                isSelected: selectedPositionIDs.contains(position.id)
+                            )
                         }
+                        .buttonStyle(.plain)
                     }
-                    .padding(.trailing, 4)
                 }
-                .frame(maxHeight: 220)
+                .padding(.trailing, 4)
             }
+            .frame(maxHeight: 220)
+        }
+    }
+
+    private var tagKeywordFilterSection: some View {
+        KeywordFilterSection(
+            title: "Tags",
+            subtitle: selectedTagKeywords.isEmpty
+                ? "Filter by specific saved tags."
+                : "\(selectedTagKeywords.count) selected",
+            keywords: availableTagKeywords,
+            selectedKeywords: selectedTagKeywords,
+            emptyMessage: "No saved tags yet."
+        ) { keyword in
+            toggleTagKeyword(keyword)
+        }
+    }
+
+    private var greenFlagKeywordFilterSection: some View {
+        KeywordFilterSection(
+            title: "Green flags",
+            subtitle: selectedGreenFlagKeywords.isEmpty
+                ? "Filter by specific green flag keywords."
+                : "\(selectedGreenFlagKeywords.count) selected",
+            keywords: availableGreenFlagKeywords,
+            selectedKeywords: selectedGreenFlagKeywords,
+            emptyMessage: "No saved green flags yet."
+        ) { keyword in
+            toggleGreenFlagKeyword(keyword)
+        }
+    }
+
+    private var redFlagKeywordFilterSection: some View {
+        KeywordFilterSection(
+            title: "Red flags",
+            subtitle: selectedRedFlagKeywords.isEmpty
+                ? "Filter by specific red flag keywords."
+                : "\(selectedRedFlagKeywords.count) selected",
+            keywords: availableRedFlagKeywords,
+            selectedKeywords: selectedRedFlagKeywords,
+            emptyMessage: "No saved red flags yet."
+        ) { keyword in
+            toggleRedFlagKeyword(keyword)
         }
     }
 
@@ -455,12 +536,36 @@ struct HomeView: View {
             || requiresRedFlags
             || requiresNotes
             || !selectedPositionIDs.isEmpty
+            || !selectedTagKeywords.isEmpty
+            || !selectedGreenFlagKeywords.isEmpty
+            || !selectedRedFlagKeywords.isEmpty
 
         guard hasActiveFilters else { return true }
 
         if !selectedPositionIDs.isEmpty {
             let threadPositionIDs = Set(thread.entries.flatMap(\.positionIDs))
             guard selectedPositionIDs.isSubset(of: threadPositionIDs) else {
+                return false
+            }
+        }
+
+        if !selectedTagKeywords.isEmpty {
+            let threadTags = Set(thread.entries.flatMap(\.tags))
+            guard selectedTagKeywords.isSubset(of: threadTags) else {
+                return false
+            }
+        }
+
+        if !selectedGreenFlagKeywords.isEmpty {
+            let threadGreenFlags = Set(thread.entries.flatMap(\.greenFlags))
+            guard selectedGreenFlagKeywords.isSubset(of: threadGreenFlags) else {
+                return false
+            }
+        }
+
+        if !selectedRedFlagKeywords.isEmpty {
+            let threadRedFlags = Set(thread.entries.flatMap(\.redFlags))
+            guard selectedRedFlagKeywords.isSubset(of: threadRedFlags) else {
                 return false
             }
         }
@@ -515,6 +620,9 @@ struct HomeView: View {
         requiresRedFlags = false
         requiresNotes = false
         selectedPositionIDs.removeAll()
+        selectedTagKeywords.removeAll()
+        selectedGreenFlagKeywords.removeAll()
+        selectedRedFlagKeywords.removeAll()
     }
 
     private func toggleConnectionType(_ type: ConnectionType) {
@@ -530,6 +638,30 @@ struct HomeView: View {
             selectedPositionIDs.remove(id)
         } else {
             selectedPositionIDs.insert(id)
+        }
+    }
+
+    private func toggleTagKeyword(_ keyword: String) {
+        if selectedTagKeywords.contains(keyword) {
+            selectedTagKeywords.remove(keyword)
+        } else {
+            selectedTagKeywords.insert(keyword)
+        }
+    }
+
+    private func toggleGreenFlagKeyword(_ keyword: String) {
+        if selectedGreenFlagKeywords.contains(keyword) {
+            selectedGreenFlagKeywords.remove(keyword)
+        } else {
+            selectedGreenFlagKeywords.insert(keyword)
+        }
+    }
+
+    private func toggleRedFlagKeyword(_ keyword: String) {
+        if selectedRedFlagKeywords.contains(keyword) {
+            selectedRedFlagKeywords.remove(keyword)
+        } else {
+            selectedRedFlagKeywords.insert(keyword)
         }
     }
 
@@ -792,6 +924,42 @@ private struct FilterPositionTile: View {
                 .stroke(isSelected ? AppTheme.Colors.accent.opacity(0.8) : Color.white.opacity(0.18), lineWidth: 1)
         }
         .saturation(isSelected ? 1 : 0)
+    }
+}
+
+private struct KeywordFilterSection: View {
+    let title: String
+    let subtitle: String
+    let keywords: [String]
+    let selectedKeywords: Set<String>
+    let emptyMessage: String
+    let onToggle: (String) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+            SectionHeader(title, subtitle: subtitle)
+
+            if keywords.isEmpty {
+                Text(emptyMessage)
+                    .font(AppTheme.Typography.caption)
+                    .foregroundStyle(AppTheme.Colors.secondaryText)
+                    .padding(.horizontal, 4)
+            } else {
+                LazyVGrid(
+                    columns: [GridItem(.adaptive(minimum: 120), spacing: AppTheme.Spacing.small)],
+                    spacing: AppTheme.Spacing.small
+                ) {
+                    ForEach(keywords, id: \.self) { keyword in
+                        FilterChipButton(
+                            title: keyword,
+                            isSelected: selectedKeywords.contains(keyword)
+                        ) {
+                            onToggle(keyword)
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -1178,9 +1346,25 @@ private struct EntryBinarySummary: View {
     private var enabledItems: [String] {
         var items: [String] = []
         if entry.wouldMeetAgain { items.append("Would meet again") }
-        if entry.goodKisser { items.append("Good kisser") }
-        if entry.goodHead { items.append("Good head") }
-        if entry.longDuration { items.append("Long") }
+        if entry.attractive { items.append("Attractive · \(entry.attractiveRating)/10") }
+        if entry.tall {
+            if let heightCentimeters = entry.heightCentimeters {
+                items.append("Tall · \(heightCentimeters) cm")
+            } else {
+                items.append("Tall")
+            }
+        }
+        if entry.goodBody { items.append("Good body · \(entry.goodBodyRating)/10") }
+        if entry.goodFace { items.append("Good face · \(entry.goodFaceRating)/10") }
+        if entry.goodKisser { items.append("Good kisser · \(entry.goodKisserRating)/10") }
+        if entry.goodHead { items.append("Good head · \(entry.goodHeadRating)/10") }
+        if entry.longDuration {
+            if let lengthCentimeters = entry.lengthCentimeters {
+                items.append("Long · \(lengthCentimeters) cm")
+            } else {
+                items.append("Long")
+            }
+        }
         if entry.madeMeCum { items.append("Made me cum") }
         return items
     }

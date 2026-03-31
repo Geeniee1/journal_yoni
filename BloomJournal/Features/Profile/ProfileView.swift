@@ -14,6 +14,7 @@ struct ProfileView: View {
     @State private var exportPayload: ExportPayload?
     @State private var exportError: String?
     @State private var isShowingAvatarPicker = false
+    @State private var selectedStatPreview: ProfileStatPreview?
 
     private let exportService = ExportService()
     private let achievementEngine = AchievementEngine()
@@ -26,29 +27,25 @@ struct ProfileView: View {
         settings.first ?? AppSettings()
     }
 
-    private var levelValue: Int {
-        max(1, entries.count / 5 + 1)
-    }
-
     private var mostUsedTag: String {
         let frequencies = Dictionary(entries.flatMap(\.tags).map { ($0, 1) }, uniquingKeysWith: +)
         return frequencies.max(by: { $0.value < $1.value })?.key.capitalized ?? "None yet"
     }
 
-    private var deepConnections: Int {
+    private var totalConnections: Int {
         Set(entries.map(\.personNameOrAlias)).count
     }
 
-    private var streakValue: Int {
-        let days = Set(entries.map { Calendar.current.startOfDay(for: $0.entryDate) })
-        var streak = 0
-        var current = Calendar.current.startOfDay(for: .now)
+    private var totalHookups: Int {
+        entries.filter { $0.connectionType == .hookup }.count
+    }
 
-        while days.contains(current) {
-            streak += 1
-            current = Calendar.current.date(byAdding: .day, value: -1, to: current) ?? current
-        }
-        return streak
+    private var totalSexyTimes: Int {
+        entries.filter { $0.connectionType == .sexyTime }.count
+    }
+
+    private var totalDates: Int {
+        entries.filter { $0.connectionType == .date }.count
     }
 
     private var unlockedAchievements: [AchievementDefinition] {
@@ -76,6 +73,13 @@ struct ProfileView: View {
         .task {
             await SeedDataService.ensureSingletonsIfNeeded(modelContext: modelContext)
             lockController.setAppLockEnabled(appSettings.isBiometricLockEnabled)
+        }
+        .sheet(item: $selectedStatPreview) { preview in
+            NavigationStack {
+                ProfileStatPreviewSheet(preview: preview)
+            }
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
         }
     }
 
@@ -105,11 +109,6 @@ struct ProfileView: View {
                     .font(AppTheme.Typography.display)
                     .foregroundStyle(AppTheme.Colors.primaryText)
                     .multilineTextAlignment(.center)
-
-                Text("Reflection Level \(levelValue)")
-                    .font(.system(.caption, design: .rounded).weight(.bold))
-                    .foregroundStyle(AppTheme.Colors.accent)
-                    .tracking(1.2)
 
                 Text(profile?.bio.isEmpty == false ? profile?.bio ?? "" : "A private place for desire, tenderness, memory, and honesty.")
                     .font(AppTheme.Typography.body)
@@ -241,42 +240,81 @@ struct ProfileView: View {
 
     private var reflectionJourney: some View {
         VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
-            SectionHeader("Your reflection journey")
+            SectionHeader("Archive snapshot", subtitle: "Tap a category to preview the entries inside it.")
 
-            VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
-                Text("Consistency streak")
-                    .font(.system(.caption, design: .rounded).weight(.bold))
-                    .foregroundStyle(AppTheme.Colors.secondaryText)
-                    .tracking(1.2)
+            archiveStatGrid
+        }
+    }
 
-                Text("\(streakValue)")
-                    .font(.system(size: 52, weight: .bold, design: .rounded))
-                    .foregroundStyle(AppTheme.Colors.primaryText)
-
-                Text(streakValue == 1 ? "day with an entry" : "days with consecutive entries")
-                    .font(AppTheme.Typography.body)
-                    .foregroundStyle(AppTheme.Colors.secondaryText)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(AppTheme.Spacing.large)
-            .background(
-                RoundedRectangle(cornerRadius: AppTheme.CornerRadius.xLarge, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [AppTheme.Colors.accentSoft.opacity(0.95), Color.white.opacity(0.35)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+    private var archiveStatGrid: some View {
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: AppTheme.Spacing.medium) {
+            statPreviewButton(
+                title: "All Entries",
+                subtitle: "\(entries.count) total entr\(entries.count == 1 ? "y" : "ies")",
+                entries: entries,
+                cardTitle: "Total Entries",
+                cardValue: "\(entries.count)",
+                symbolName: "book.pages.fill"
             )
 
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: AppTheme.Spacing.medium) {
-                StatCard(title: "Total Entries", value: "\(entries.count)", symbolName: "book.pages.fill")
-                StatCard(title: "Deep Connections", value: "\(deepConnections)", symbolName: "heart.fill")
-                StatCard(title: "Most Used Tag", value: mostUsedTag, symbolName: "tag.fill")
-                StatCard(title: "Current Level", value: "\(levelValue)", symbolName: "sparkles")
-            }
+            StatCard(title: "Most Used Tag", value: mostUsedTag, symbolName: "tag.fill")
+
+            statPreviewButton(
+                title: "Connections",
+                subtitle: "\(totalConnections) saved connection\(totalConnections == 1 ? "" : "s")",
+                entries: entries,
+                cardTitle: "Total Connections",
+                cardValue: "\(totalConnections)",
+                symbolName: "person.2.fill"
+            )
+
+            statPreviewButton(
+                title: "Hookups",
+                subtitle: "\(totalHookups) hookup entr\(totalHookups == 1 ? "y" : "ies")",
+                entries: entries.filter { $0.connectionType == .hookup },
+                cardTitle: "Total Hookups",
+                cardValue: "\(totalHookups)",
+                symbolName: "flame.fill"
+            )
+
+            statPreviewButton(
+                title: "Sexy Time",
+                subtitle: "\(totalSexyTimes) sexy time entr\(totalSexyTimes == 1 ? "y" : "ies")",
+                entries: entries.filter { $0.connectionType == .sexyTime },
+                cardTitle: "Total Sexy Times",
+                cardValue: "\(totalSexyTimes)",
+                symbolName: "sparkles"
+            )
+
+            statPreviewButton(
+                title: "Dates",
+                subtitle: "\(totalDates) date entr\(totalDates == 1 ? "y" : "ies")",
+                entries: entries.filter { $0.connectionType == .date },
+                cardTitle: "Total Dates",
+                cardValue: "\(totalDates)",
+                symbolName: "calendar"
+            )
         }
+    }
+
+    private func statPreviewButton(
+        title: String,
+        subtitle: String,
+        entries: [JournalEntry],
+        cardTitle: String,
+        cardValue: String,
+        symbolName: String
+    ) -> some View {
+        Button {
+            selectedStatPreview = ProfileStatPreview(
+                title: title,
+                subtitle: subtitle,
+                entries: entries
+            )
+        } label: {
+            StatCard(title: cardTitle, value: cardValue, symbolName: symbolName)
+        }
+        .buttonStyle(.plain)
     }
 
     private var achievementsSection: some View {
@@ -629,6 +667,113 @@ private struct ProfileAvatarTile: View {
             RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large, style: .continuous)
                 .stroke(isSelected ? AppTheme.Colors.accent.opacity(0.8) : Color.white.opacity(0.2), lineWidth: 1)
         }
+    }
+}
+
+private struct ProfileStatPreview: Identifiable {
+    let title: String
+    let subtitle: String
+    let entries: [JournalEntry]
+
+    var id: String { title }
+}
+
+private struct ProfileStatPreviewSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let preview: ProfileStatPreview
+
+    var body: some View {
+        ScreenContainer(
+            title: preview.title,
+            subtitle: preview.subtitle
+        ) {
+            if preview.entries.isEmpty {
+                EmptyStateCard(
+                    title: "No entries here yet",
+                    message: "Once you log entries in this category, they’ll appear here.",
+                    systemImage: "tray"
+                )
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: AppTheme.Spacing.medium) {
+                        ForEach(preview.entries.sorted(by: { $0.entryDate > $1.entryDate })) { entry in
+                            ProfilePreviewEntryCard(entry: entry)
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle(preview.title)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Done") {
+                    dismiss()
+                }
+            }
+        }
+    }
+}
+
+private struct ProfilePreviewEntryCard: View {
+    let entry: JournalEntry
+
+    private var accentColor: Color {
+        entry.isPlannedFutureEntry ? AppTheme.Colors.secondaryText : AppTheme.Colors.accent
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
+            HStack(alignment: .top, spacing: AppTheme.Spacing.medium) {
+                LotusRatingIcon(level: entry.rating, isSelected: true, showsValueLabel: false)
+                    .frame(width: 64)
+                    .opacity(entry.isPlannedFutureEntry ? 0.72 : 1)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(entry.personNameOrAlias)
+                        .font(AppTheme.Typography.cardTitle)
+                        .foregroundStyle(AppTheme.Colors.primaryText)
+
+                    Text(entry.entryDate.formatted(date: .abbreviated, time: .shortened))
+                        .font(AppTheme.Typography.caption)
+                        .foregroundStyle(AppTheme.Colors.secondaryText)
+
+                    Text(entry.notes)
+                        .font(AppTheme.Typography.body)
+                        .foregroundStyle(AppTheme.Colors.secondaryText)
+                        .lineLimit(3)
+                }
+
+                Spacer(minLength: 0)
+            }
+
+            HStack(spacing: 10) {
+                Text(entry.connectionType.title.uppercased())
+                    .font(.system(.caption2, design: .rounded).weight(.bold))
+                    .foregroundStyle(accentColor)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(
+                                entry.isPlannedFutureEntry
+                                    ? Color.white.opacity(0.3)
+                                    : AppTheme.Colors.accentSoft.opacity(0.88)
+                            )
+                    )
+
+                if !entry.tags.isEmpty {
+                    Text(entry.tags.prefix(2).joined(separator: " · "))
+                        .font(AppTheme.Typography.caption)
+                        .foregroundStyle(AppTheme.Colors.secondaryText)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassCard()
+        .saturation(entry.isPlannedFutureEntry ? 0.45 : 1)
+        .opacity(entry.isPlannedFutureEntry ? 0.86 : 1)
     }
 }
 
