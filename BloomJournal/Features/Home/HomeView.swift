@@ -74,7 +74,11 @@ struct HomeView: View {
                 eyebrow: "Home"
             ) {
                 searchField
-                controlsCard
+                if isSelectingThreads {
+                    selectionControlsCard
+                } else {
+                    controlsCard
+                }
 
                 if entries.isEmpty {
                     EmptyStateCard(
@@ -176,7 +180,7 @@ struct HomeView: View {
 
     private var controlsCard: some View {
         VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
-            HStack(spacing: AppTheme.Spacing.small) {
+            HStack(alignment: .center, spacing: AppTheme.Spacing.small) {
                 Button {
                     isShowingFilters.toggle()
                 } label: {
@@ -194,28 +198,32 @@ struct HomeView: View {
                         }
                     }
                 } label: {
-                    Label(sortOption.title, systemImage: "arrow.up.arrow.down.circle")
-                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                        .foregroundStyle(AppTheme.Colors.primaryText)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .background(Capsule(style: .continuous).fill(Color.white.opacity(0.48)))
-                        .overlay {
-                            Capsule(style: .continuous)
-                                .stroke(Color.white.opacity(0.55), lineWidth: 1)
+                    HStack(spacing: 8) {
+                        Image(systemName: "arrow.up.arrow.down.circle")
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text("Sort")
+                                .font(.system(size: 11, weight: .bold, design: .rounded))
+                                .foregroundStyle(AppTheme.Colors.secondaryText)
+                            Text(sortOption.shortTitle)
+                                .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                                .foregroundStyle(AppTheme.Colors.primaryText)
                         }
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Capsule(style: .continuous).fill(Color.white.opacity(0.48)))
+                    .overlay {
+                        Capsule(style: .continuous)
+                            .stroke(Color.white.opacity(0.55), lineWidth: 1)
+                    }
                 }
+                .frame(maxWidth: .infinity)
 
                 Spacer()
 
-                if isSelectingThreads {
-                    Button("Cancel") {
-                        isSelectingThreads = false
-                        selectedThreadIDs.removeAll()
-                    }
-                    .font(AppTheme.Typography.caption.weight(.semibold))
-                    .foregroundStyle(AppTheme.Colors.secondaryText)
-                } else if !activeFilterLabels.isEmpty {
+                if !activeFilterLabels.isEmpty {
                     Button("Clear") {
                         clearAllFilters()
                     }
@@ -230,14 +238,6 @@ struct HomeView: View {
                     .font(AppTheme.Typography.caption.weight(.semibold))
                     .foregroundStyle(AppTheme.Colors.accent)
                 }
-
-                if isSelectingThreads, !selectedThreadIDs.isEmpty {
-                    Button("Delete (\(selectedThreadIDs.count))") {
-                        isShowingDeleteSelectedThreadsConfirmation = true
-                    }
-                    .font(AppTheme.Typography.caption.weight(.semibold))
-                    .foregroundStyle(AppTheme.Colors.warning)
-                }
             }
 
             if !activeFilterLabels.isEmpty {
@@ -246,6 +246,50 @@ struct HomeView: View {
 
             if isShowingFilters {
                 filterPanel
+            }
+        }
+        .glassCard()
+    }
+
+    private var selectionControlsCard: some View {
+        HStack(alignment: .center, spacing: AppTheme.Spacing.medium) {
+            HStack(spacing: AppTheme.Spacing.small) {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(AppTheme.Colors.accent)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Selection Mode")
+                        .font(AppTheme.Typography.cardTitle)
+                        .foregroundStyle(AppTheme.Colors.primaryText)
+
+                    Text(
+                        selectedThreadIDs.isEmpty
+                            ? "Tap journals to mark them for deletion."
+                            : "\(selectedThreadIDs.count) journal\(selectedThreadIDs.count == 1 ? "" : "s") selected"
+                    )
+                    .font(AppTheme.Typography.caption)
+                    .foregroundStyle(AppTheme.Colors.secondaryText)
+                }
+            }
+
+            Spacer(minLength: 0)
+
+            HStack(spacing: AppTheme.Spacing.small) {
+                Button("Cancel") {
+                    isSelectingThreads = false
+                    selectedThreadIDs.removeAll()
+                }
+                .font(AppTheme.Typography.caption.weight(.semibold))
+                .foregroundStyle(AppTheme.Colors.secondaryText)
+
+                if !selectedThreadIDs.isEmpty {
+                    Button("Delete (\(selectedThreadIDs.count))") {
+                        isShowingDeleteSelectedThreadsConfirmation = true
+                    }
+                    .font(AppTheme.Typography.caption.weight(.semibold))
+                    .foregroundStyle(AppTheme.Colors.warning)
+                }
             }
         }
         .glassCard()
@@ -511,7 +555,22 @@ private struct EntryCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
             HStack(alignment: .top, spacing: AppTheme.Spacing.medium) {
-                LotusRatingIcon(level: thread.latestEntry.rating, isSelected: true)
+                ZStack(alignment: .topLeading) {
+                    LotusRatingIcon(level: thread.latestEntry.rating, isSelected: true, showsValueLabel: false)
+                        .frame(width: 72)
+
+                    if isSelecting {
+                        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundStyle(isSelected ? AppTheme.Colors.accent : AppTheme.Colors.secondaryText.opacity(0.7))
+                            .padding(2)
+                            .background(
+                                Circle()
+                                    .fill(Color.white.opacity(0.92))
+                            )
+                            .offset(x: -6, y: -6)
+                    }
+                }
 
                 VStack(alignment: .leading, spacing: AppTheme.Spacing.xSmall) {
                     HStack {
@@ -560,14 +619,6 @@ private struct EntryCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassCard()
-        .overlay(alignment: .topTrailing) {
-            if isSelecting {
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(isSelected ? AppTheme.Colors.accent : AppTheme.Colors.secondaryText.opacity(0.7))
-                    .padding(12)
-            }
-        }
     }
 }
 
@@ -625,6 +676,17 @@ private enum HomeSortOption: String, CaseIterable, Identifiable {
         case .greenFlags: "Amount of green flags"
         case .redFlags: "Amount of red flags"
         case .entryCount: "Amount of entries"
+        }
+    }
+
+    var shortTitle: String {
+        switch self {
+        case .latestJournalEntry: "Latest"
+        case .initialJournalEntry: "Initial"
+        case .score: "Score"
+        case .greenFlags: "Green flags"
+        case .redFlags: "Red flags"
+        case .entryCount: "Entries"
         }
     }
 
@@ -915,7 +977,22 @@ private struct EntryHistoryCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
             HStack(alignment: .top, spacing: AppTheme.Spacing.small) {
-                LotusRatingIcon(level: entry.rating, isSelected: true)
+                ZStack(alignment: .topLeading) {
+                    LotusRatingIcon(level: entry.rating, isSelected: true, showsValueLabel: false)
+                        .frame(width: 72)
+
+                    if isSelecting {
+                        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundStyle(isSelected ? AppTheme.Colors.accent : AppTheme.Colors.secondaryText.opacity(0.7))
+                            .padding(2)
+                            .background(
+                                Circle()
+                                    .fill(Color.white.opacity(0.92))
+                            )
+                            .offset(x: -6, y: -6)
+                    }
+                }
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text(entry.entryDate.formatted(date: .abbreviated, time: .shortened))
@@ -949,14 +1026,6 @@ private struct EntryHistoryCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassCard()
-        .overlay(alignment: .topTrailing) {
-            if isSelecting {
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(isSelected ? AppTheme.Colors.accent : AppTheme.Colors.secondaryText.opacity(0.7))
-                    .padding(12)
-            }
-        }
     }
 }
 

@@ -190,6 +190,7 @@ struct LotusRatingPicker: View {
 struct LotusRatingIcon: View {
     let level: Int
     let isSelected: Bool
+    var showsValueLabel: Bool = true
 
     var body: some View {
         VStack(spacing: 6) {
@@ -202,9 +203,11 @@ struct LotusRatingIcon: View {
                 .scaleEffect(isSelected ? 1.03 : 0.98)
                 .opacity(isSelected ? 1 : 0.82)
 
-            Text("\(level)")
-                .font(.system(.caption2, design: .rounded).weight(.bold))
-                .foregroundStyle(isSelected ? AppTheme.Colors.primaryText : AppTheme.Colors.secondaryText)
+            if showsValueLabel {
+                Text("\(level)")
+                    .font(.system(.caption2, design: .rounded).weight(.bold))
+                    .foregroundStyle(isSelected ? AppTheme.Colors.primaryText : AppTheme.Colors.secondaryText)
+            }
         }
         .frame(maxWidth: .infinity)
     }
