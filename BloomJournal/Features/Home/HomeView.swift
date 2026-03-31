@@ -1853,7 +1853,7 @@ private struct VoiceMemoPlaybackCard: View {
 }
 
 @MainActor
-private final class VoiceMemoPlayer: NSObject, ObservableObject, AVAudioPlayerDelegate {
+private final class VoiceMemoPlayer: NSObject, ObservableObject, @preconcurrency AVAudioPlayerDelegate {
     @Published var isPlaying = false
 
     private var player: AVAudioPlayer?

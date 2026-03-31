@@ -1,9 +1,8 @@
 import Foundation
 
-struct AudioMemoStorageService {
-    private let fileManager = FileManager.default
-
+struct AudioMemoStorageService: Sendable {
     private var baseURL: URL {
+        let fileManager = FileManager.default
         let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         let folder = appSupport.appendingPathComponent("EntryVoiceMemos", isDirectory: true)
 
@@ -20,6 +19,7 @@ struct AudioMemoStorageService {
     }
 
     func persistRecording(from temporaryURL: URL) throws -> String {
+        let fileManager = FileManager.default
         let fileName = "\(UUID().uuidString).m4a"
         let destinationURL = baseURL.appendingPathComponent(fileName)
 
@@ -36,6 +36,6 @@ struct AudioMemoStorageService {
     }
 
     func delete(fileName: String) {
-        try? fileManager.removeItem(at: audioURL(for: fileName))
+        try? FileManager.default.removeItem(at: audioURL(for: fileName))
     }
 }

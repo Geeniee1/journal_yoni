@@ -982,7 +982,7 @@ private struct SaveConfirmationBanner: View {
 }
 
 @MainActor
-final class VoiceMemoRecorder: NSObject, ObservableObject, AVAudioPlayerDelegate {
+final class VoiceMemoRecorder: NSObject, ObservableObject, @preconcurrency AVAudioPlayerDelegate {
     @Published var isRecording = false
     @Published var isPlaying = false
     @Published var currentDuration: TimeInterval?
@@ -1001,8 +1001,6 @@ final class VoiceMemoRecorder: NSObject, ObservableObject, AVAudioPlayerDelegate
     private var currentURL: URL?
     private var recorder: AVAudioRecorder?
     private var player: AVAudioPlayer?
-    private var timer: Timer?
-
     func loadExistingMemo(url: URL, duration: TimeInterval?) {
         stopPlayback()
         stopRecording()
@@ -1015,7 +1013,7 @@ final class VoiceMemoRecorder: NSObject, ObservableObject, AVAudioPlayerDelegate
         stopPlayback()
         errorMessage = nil
 
-        AVAudioSession.sharedInstance().requestRecordPermission { [weak self] granted in
+        AVAudioApplication.requestRecordPermission { [weak self] granted in
             Task { @MainActor in
                 guard let self else { return }
                 guard granted else {
@@ -1033,7 +1031,6 @@ final class VoiceMemoRecorder: NSObject, ObservableObject, AVAudioPlayerDelegate
         currentDuration = recorder.currentTime
         self.recorder = nil
         isRecording = false
-        stopTimer()
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 
@@ -1099,7 +1096,6 @@ final class VoiceMemoRecorder: NSObject, ObservableObject, AVAudioPlayerDelegate
             currentURL = url
             currentDuration = 0
             isRecording = true
-            startTimer()
         } catch {
             errorMessage = "Could not start recording. Please try again."
         }
@@ -1129,22 +1125,6 @@ final class VoiceMemoRecorder: NSObject, ObservableObject, AVAudioPlayerDelegate
         isPlaying = false
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
-
-    private func startTimer() {
-        stopTimer()
-        timer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { [weak self] _ in
-            guard let self, let recorder = self.recorder else { return }
-            Task { @MainActor in
-                self.currentDuration = recorder.currentTime
-            }
-        }
-    }
-
-    private func stopTimer() {
-        timer?.invalidate()
-        timer = nil
-    }
-
     func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
         isPlaying = false
         self.player = nil
