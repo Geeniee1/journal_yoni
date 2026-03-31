@@ -19,6 +19,9 @@ struct HomeView: View {
     @State private var selectedPositionIDs: Set<String> = []
     @State private var selectedThread: PersonThreadSelection?
     @State private var entryPendingDeletion: JournalEntry?
+    @State private var isSelectingThreads = false
+    @State private var selectedThreadIDs: Set<String> = []
+    @State private var isShowingDeleteSelectedThreadsConfirmation = false
 
     private var visibleThreads: [PersonThread] {
         sortOption.sorted(
@@ -129,6 +132,14 @@ struct HomeView: View {
             } message: { _ in
                 Text("This entry will be permanently deleted.")
             }
+            .alert("Delete selected journals?", isPresented: $isShowingDeleteSelectedThreadsConfirmation) {
+                Button("Delete", role: .destructive) {
+                    deleteSelectedThreads()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This will permanently delete every saved entry in the selected journals.")
+            }
         }
     }
 
@@ -197,9 +208,32 @@ struct HomeView: View {
 
                 Spacer()
 
-                if !activeFilterLabels.isEmpty {
+                if isSelectingThreads {
+                    Button("Cancel") {
+                        isSelectingThreads = false
+                        selectedThreadIDs.removeAll()
+                    }
+                    .font(AppTheme.Typography.caption.weight(.semibold))
+                    .foregroundStyle(AppTheme.Colors.secondaryText)
+                } else if !activeFilterLabels.isEmpty {
                     Button("Clear") {
                         clearAllFilters()
+                    }
+                    .font(AppTheme.Typography.caption.weight(.semibold))
+                    .foregroundStyle(AppTheme.Colors.warning)
+                }
+
+                if !isSelectingThreads {
+                    Button("Select") {
+                        isSelectingThreads = true
+                    }
+                    .font(AppTheme.Typography.caption.weight(.semibold))
+                    .foregroundStyle(AppTheme.Colors.accent)
+                }
+
+                if isSelectingThreads, !selectedThreadIDs.isEmpty {
+                    Button("Delete (\(selectedThreadIDs.count))") {
+                        isShowingDeleteSelectedThreadsConfirmation = true
                     }
                     .font(AppTheme.Typography.caption.weight(.semibold))
                     .foregroundStyle(AppTheme.Colors.warning)
@@ -297,27 +331,33 @@ struct HomeView: View {
             ForEach(visibleThreads) { thread in
                 ZStack(alignment: .topLeading) {
                     Button {
-                        selectedThread = PersonThreadSelection(personName: thread.personName)
+                        if isSelectingThreads {
+                            toggleThreadSelection(thread.id)
+                        } else {
+                            selectedThread = PersonThreadSelection(personName: thread.personName)
+                        }
                     } label: {
-                        EntryCard(thread: thread)
+                        EntryCard(thread: thread, isSelected: selectedThreadIDs.contains(thread.id), isSelecting: isSelectingThreads)
                     }
                     .buttonStyle(.plain)
 
-                    Button {
-                        entryPendingDeletion = thread.latestEntry
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(.white)
-                            .frame(width: 24, height: 24)
-                            .background(
-                                Circle()
-                                    .fill(Color.black.opacity(0.62))
-                            )
+                    if !isSelectingThreads {
+                        Button {
+                            entryPendingDeletion = thread.latestEntry
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(.white)
+                                .frame(width: 24, height: 24)
+                                .background(
+                                    Circle()
+                                        .fill(Color.black.opacity(0.62))
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.leading, 10)
+                        .padding(.top, 10)
                     }
-                    .buttonStyle(.plain)
-                    .padding(.leading, 10)
-                    .padding(.top, 10)
                 }
             }
         }
@@ -326,6 +366,20 @@ struct HomeView: View {
     private func delete(_ entry: JournalEntry) {
         modelContext.delete(entry)
         try? modelContext.save()
+    }
+
+    private func deleteSelectedThreads() {
+        let entriesToDelete = personThreads
+            .filter { selectedThreadIDs.contains($0.id) }
+            .flatMap(\.entries)
+
+        for entry in entriesToDelete {
+            modelContext.delete(entry)
+        }
+
+        try? modelContext.save()
+        selectedThreadIDs.removeAll()
+        isSelectingThreads = false
     }
 
     private func threadMatchesSearch(_ thread: PersonThread) -> Bool {
@@ -435,6 +489,14 @@ struct HomeView: View {
         }
     }
 
+    private func toggleThreadSelection(_ id: String) {
+        if selectedThreadIDs.contains(id) {
+            selectedThreadIDs.remove(id)
+        } else {
+            selectedThreadIDs.insert(id)
+        }
+    }
+
     private func normalizedPersonName(for value: String) -> String {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? "untitled-connection" : trimmed.lowercased()
@@ -443,6 +505,8 @@ struct HomeView: View {
 
 private struct EntryCard: View {
     let thread: PersonThread
+    let isSelected: Bool
+    let isSelecting: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
@@ -496,6 +560,14 @@ private struct EntryCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassCard()
+        .overlay(alignment: .topTrailing) {
+            if isSelecting {
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(isSelected ? AppTheme.Colors.accent : AppTheme.Colors.secondaryText.opacity(0.7))
+                    .padding(12)
+            }
+        }
     }
 }
 
@@ -694,6 +766,9 @@ private struct PersonThreadView: View {
     @Query(sort: \JournalEntry.updatedAt, order: .reverse) private var allEntries: [JournalEntry]
     @State private var selectedEntry: JournalEntry?
     @State private var isShowingNewEntry = false
+    @State private var isSelectingEntries = false
+    @State private var selectedEntryIDs: Set<UUID> = []
+    @State private var isShowingDeleteSelectedEntriesConfirmation = false
 
     let personName: String
     let onDeleteEntry: (JournalEntry) -> Void
@@ -711,14 +786,39 @@ private struct PersonThreadView: View {
             subtitle: "View older interactions, edit them, or add a fresh entry for this person."
         ) {
             VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
-                Button {
-                    isShowingNewEntry = true
-                } label: {
-                    Label("Add New Entry for \(personName)", systemImage: "plus.circle.fill")
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
+                HStack(spacing: AppTheme.Spacing.small) {
+                    Button {
+                        isShowingNewEntry = true
+                    } label: {
+                        Label("Add New Entry for \(personName)", systemImage: "plus.circle.fill")
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                    }
+                    .buttonStyle(PrimaryButtonStyle())
+
+                    if isSelectingEntries {
+                        Button("Cancel") {
+                            isSelectingEntries = false
+                            selectedEntryIDs.removeAll()
+                        }
+                        .font(AppTheme.Typography.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.Colors.secondaryText)
+
+                        if !selectedEntryIDs.isEmpty {
+                            Button("Delete (\(selectedEntryIDs.count))") {
+                                isShowingDeleteSelectedEntriesConfirmation = true
+                            }
+                            .font(AppTheme.Typography.caption.weight(.semibold))
+                            .foregroundStyle(AppTheme.Colors.warning)
+                        }
+                    } else {
+                        Button("Select") {
+                            isSelectingEntries = true
+                        }
+                        .font(AppTheme.Typography.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.Colors.accent)
+                    }
                 }
-                .buttonStyle(PrimaryButtonStyle())
 
                 if entries.isEmpty {
                     EmptyStateCard(
@@ -733,9 +833,17 @@ private struct PersonThreadView: View {
                         LazyVStack(spacing: AppTheme.Spacing.medium) {
                             ForEach(entries) { entry in
                                 Button {
-                                    selectedEntry = entry
+                                    if isSelectingEntries {
+                                        toggleEntrySelection(entry.id)
+                                    } else {
+                                        selectedEntry = entry
+                                    }
                                 } label: {
-                                    EntryHistoryCard(entry: entry)
+                                    EntryHistoryCard(
+                                        entry: entry,
+                                        isSelected: selectedEntryIDs.contains(entry.id),
+                                        isSelecting: isSelectingEntries
+                                    )
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -745,6 +853,14 @@ private struct PersonThreadView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
+        .alert("Delete selected entries?", isPresented: $isShowingDeleteSelectedEntriesConfirmation) {
+            Button("Delete", role: .destructive) {
+                deleteSelectedEntries()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will permanently delete every selected entry for \(personName).")
+        }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button {
@@ -773,10 +889,28 @@ private struct PersonThreadView: View {
             .presentationDetents([.large])
         }
     }
+
+    private func toggleEntrySelection(_ id: UUID) {
+        if selectedEntryIDs.contains(id) {
+            selectedEntryIDs.remove(id)
+        } else {
+            selectedEntryIDs.insert(id)
+        }
+    }
+
+    private func deleteSelectedEntries() {
+        for entry in entries where selectedEntryIDs.contains(entry.id) {
+            onDeleteEntry(entry)
+        }
+        selectedEntryIDs.removeAll()
+        isSelectingEntries = false
+    }
 }
 
 private struct EntryHistoryCard: View {
     let entry: JournalEntry
+    let isSelected: Bool
+    let isSelecting: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
@@ -815,6 +949,14 @@ private struct EntryHistoryCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassCard()
+        .overlay(alignment: .topTrailing) {
+            if isSelecting {
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(isSelected ? AppTheme.Colors.accent : AppTheme.Colors.secondaryText.opacity(0.7))
+                    .padding(12)
+            }
+        }
     }
 }
 
