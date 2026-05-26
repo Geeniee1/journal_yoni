@@ -8,18 +8,14 @@ A local‑first iOS journaling app for keeping track of romantic and sexual rela
 
 ## Preview
 
-> _Add screenshots / a short GIF here to show the main flows (timeline, entry editor, attachments, etc.)._
+### App icon / theme
 
-<!--
-Recommended:
-- /assets/preview-1.png
-- /assets/preview-2.png
-- /assets/preview.gif
+<p align="left">
+  <img src="BloomJournal/Resources/Assets.xcassets/profile-avatar-6.imageset/profile-avatar-6.png" alt="Profile avatar" width="160" />
+</p>
 
-Then embed like:
-![Timeline](assets/preview-1.png)
-![New Entry](assets/preview-2.png)
--->
+> Tip: GitHub renders PNGs directly from the repo, but `.xcassets` contents are meant for Xcode.
+> For UI screenshots, it’s usually cleaner to add a top-level `assets/` folder (e.g. `assets/screenshots/`).
 
 ## Privacy
 
