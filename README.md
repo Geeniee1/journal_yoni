@@ -1,3 +1,26 @@
+# Yoni Journal
+
+A local‑first iOS journaling app for keeping track of romantic and sexual relationships.
+
+- **Private by default:** entries, photos, and voice memos are stored **on‑device**.
+- **Quick capture:** write text notes and attach media for richer memories.
+- **Built with Swift:** simple, hackable codebase for learning and open‑source exploration.
+
+## Preview
+
+> _Add screenshots / a short GIF here to show the main flows (timeline, entry editor, attachments, etc.)._
+
+<!--
+Recommended:
+- /assets/preview-1.png
+- /assets/preview-2.png
+- /assets/preview.gif
+
+Then embed like:
+![Timeline](assets/preview-1.png)
+![New Entry](assets/preview-2.png)
+-->
+
 ## Privacy
 
 Yoni Journal is designed to be **local-first**: entries, photos, and voice memos are stored **on-device**.
